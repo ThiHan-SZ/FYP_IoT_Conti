@@ -69,15 +69,15 @@ class Modulator:
         strbytes = input.encode('utf-8') #Convert the input string to binary
         strbit = ''.join(f'{byte:08b}' for byte in strbytes) #Convert the binary string to a bit string
 
-        symbol_period = self.period/symbolrate #Calculate the time period of the carrier wave, translates to the time per symbol
-        graph_time = np.arange(0, math.ceil(len(strbit)/10)*10*symbol_period + self.graphres, self.graphres) #Create the time axis for the graph
+        bit_period = self.period/symbolrate #Calculate the time period of the carrier wave, translates to the time per symbol
+        graph_time = np.arange(0, math.ceil(len(strbit)/10)*10*bit_period + self.graphres, self.graphres) #Create the time axis for the graph
         
         return graph_time, strbit
 
     def DigitalSignal(self, bitstream):
         symbolrate = mod_mode[self.mod_mode_select] #Select the symbol rate based on the modulation mode
-        symbol_period = self.period/symbolrate 
-        wavegenarr = np.arange(0, symbol_period, self.graphres)
+        bit_period = self.period/symbolrate 
+        wavegenarr = np.arange(0, bit_period, self.graphres)
         digitaltransmission = np.array([])
         for i in range(len(bitstream)):
             if bitstream[i] == '0':
@@ -115,7 +115,7 @@ class Modulator:
         modulatedtransmission = np.array([])
         bitgroup = [bitstream[i:i+4] for i in range(0, len(bitstream), 4)]
         for group in bitgroup:
-            mod_bit_sig = (QAM16[group]['I']/4) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM16[group]['Q']/4) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
+            mod_bit_sig = (QAM16[group]['I']) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM16[group]['Q']) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
             modulatedtransmission = np.append(modulatedtransmission, mod_bit_sig)
         return modulatedtransmission   
 
@@ -127,7 +127,7 @@ class Modulator:
         modulatedtransmission = np.array([])
         bitgroup = [bitstream[i:i+6] for i in range(0, len(bitstream), 6)]
         for group in bitgroup:
-            mod_bit_sig = (QAM64[group]['I']/4) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM64[group]['Q']/4) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
+            mod_bit_sig = (QAM64[group]['I']) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM64[group]['Q']) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
             modulatedtransmission = np.append(modulatedtransmission, mod_bit_sig)
         return modulatedtransmission
 
@@ -139,7 +139,7 @@ class Modulator:
         modulatedtransmission = np.array([])
         bitgroup = [bitstream[i:i+8] for i in range(0, len(bitstream), 8)]
         for group in bitgroup:
-            mod_bit_sig = (QAM256[group]['I']/4) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM256[group]['Q']/4) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
+            mod_bit_sig = (QAM256[group]['I']) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM256[group]['Q']) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
             modulatedtransmission = np.append(modulatedtransmission, mod_bit_sig)
         return modulatedtransmission 
     
@@ -151,7 +151,7 @@ class Modulator:
         modulatedtransmission = np.array([])
         bitgroup = [bitstream[i:i+10] for i in range(0, len(bitstream), 10)]
         for group in bitgroup:
-            mod_bit_sig = (QAM1024[group]['I']/4) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM1024[group]['Q']/4) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
+            mod_bit_sig = (QAM1024[group]['I']) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM1024[group]['Q']) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
             modulatedtransmission = np.append(modulatedtransmission, mod_bit_sig)
         return modulatedtransmission
     
@@ -163,7 +163,7 @@ class Modulator:
         modulatedtransmission = np.array([])
         bitgroup = [bitstream[i:i+12] for i in range(0, len(bitstream), 12)]
         for group in bitgroup:
-            mod_bit_sig = (QAM4096[group]['I']/4) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM4096[group]['Q']/4) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
+            mod_bit_sig = (QAM4096[group]['I']) * np.cos(2 * np.pi * carrier_freq * wavegenarr) + (QAM4096[group]['Q']) * np.sin(2 * np.pi * carrier_freq * wavegenarr)
             modulatedtransmission = np.append(modulatedtransmission, mod_bit_sig)
         return modulatedtransmission
 
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     mod_mode_flag = False
     while not mod_mode_flag:
         try:
-            mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, 8PSK, 16/64/256/1024/4096QAM): ").upper()
+            mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, 8PSK, 16/64/256/1024096QAM): ").upper()
             mod_test = mod_mode[mod_mode_select]
             mod_mode_flag = True
         except:
