@@ -84,7 +84,7 @@ class Modulator:
     def qam_modulation(self, bitstream):
         """Handles generic QAM modulation."""
         qam_order = mod_mode[self.mod_mode_select]
-        assert len(bitstream) % qam_order == 0, f"{self.mod_mode_select} requires group size {qam_order}."
+        assert len(bitstream) % qam_order == 0, f"{self.mod_mode_select} requires symbol size {qam_order}."
 
         with open(rf'QAM_LUT_pkl\{self.mod_mode_select}.pkl', 'rb') as f:
             qam_map = pickle.load(f)
