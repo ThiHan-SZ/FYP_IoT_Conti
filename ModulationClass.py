@@ -169,11 +169,13 @@ class Modulator:
 
 if __name__ == "__main__":
     inputmessage = input("Enter the message to be transmitted: ")
+    if inputmessage == "":
+        inputmessage = "Hello World!"
     carrier_freq = float(input("Enter the carrier frequency: "))
     mod_mode_flag = False
     while not mod_mode_flag:
         try:
-            mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, 8PSK, 16/64/256/1024096QAM): ").upper()
+            mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, 8PSK, 16/64/256/1024/4096 QAM): ").upper()
             mod_test = mod_mode[mod_mode_select]
             mod_mode_flag = True
         except:
