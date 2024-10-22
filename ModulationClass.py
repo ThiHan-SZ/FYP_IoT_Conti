@@ -17,6 +17,7 @@ class Modulator:
         self.period = 1 / self.carrier_freq
         self.Sampling_Rate = self.period / 96000 #Sampling rate
         self.symbol_rate = mod_mode[self.mod_mode_select]
+        self.show_modulation = False
 
     def generate_wave(self, wave_type='cos'):
         """Precomputes cosine or sine wave for carrier frequency."""
@@ -26,15 +27,23 @@ class Modulator:
     def generate_signals(self):
         graphtime, bitstr = self.user_char_to_bitstream()
         digital_transmission = self.digital_signal(bitstr)
-        modulated = self.modulate(bitstr)
+
+        if mod_mode[self.mod_mode_select] != 1:
+            self.show_modulation = input("Do you want to see the consituent sub-carriers? (Y/N): ").upper() == 'Y'
+        if self.show_modulation:
+            modulated, I, Q = self.modulate(bitstr)
+        else:
+            modulated = self.modulate(bitstr)
 
         # Pad to match graphtime length
         pad_len_mod = len(graphtime) - len(modulated)
         modulated = np.pad(modulated, (0, pad_len_mod), 'constant',constant_values=(0,0))
+        I = np.pad(I, (0, pad_len_mod), 'constant',constant_values=(0,0)) if self.show_modulation else None
+        Q = np.pad(Q, (0, pad_len_mod), 'constant',constant_values=(0,0)) if self.show_modulation else None
+
         pad_len_digi = len(graphtime) - len(digital_transmission)
         digital_transmission = np.pad(digital_transmission, (0, pad_len_digi), 'constant',constant_values=(0,0))
-
-        return graphtime, digital_transmission, modulated
+        return graphtime, digital_transmission, modulated, I, Q
 
     def modulate(self, bitstream):
         """Selects the correct modulation based on mode."""
@@ -73,13 +82,12 @@ class Modulator:
         """QPSK modulation."""
         assert len(bitstream) % 2 == 0, "QPSK requires even number of bits."
         wave_cos, wave_sin = self.generate_wave('cos'), self.generate_wave('sin')
-        in_phase = bitstream[0::2]
-        quadrature = bitstream[1::2]
-        return np.array([
-            (np.sqrt(0.5) * (2 * int(i) - 1) * wave_cos +
-             np.sqrt(0.5) * (2 * int(q) - 1) * wave_sin)
-            for i, q in zip(in_phase, quadrature)
-        ]).flatten()
+        bit_groups = [bitstream[i:i + 2] for i in range(0, len(bitstream), 2)]
+        I = np.array([(2 * int(b[0]) - 1) * wave_cos for b in bit_groups]).flatten()
+        Q = np.array([(2 * int(b[1]) - 1) * wave_sin for b in bit_groups]).flatten()
+        if self.show_modulation:
+            return I + Q, I, Q
+        return I + Q
 
     def qam_modulation(self, bitstream):
         """Handles generic QAM modulation."""
@@ -91,26 +99,78 @@ class Modulator:
 
         wave_cos, wave_sin = self.generate_wave('cos'), self.generate_wave('sin')
         bit_groups = [bitstream[i:i + qam_order] for i in range(0, len(bitstream), qam_order)]
-        return np.array([
-            (qam_map[group]['I'] * wave_cos + qam_map[group]['Q'] * wave_sin)
-            for group in bit_groups
-        ]).flatten()
+        
+        I = np.array([qam_map[group]['I'] * wave_cos for group in bit_groups]).flatten()
+        Q = np.array([qam_map[group]['Q'] * wave_sin for group in bit_groups]).flatten()
+        
+        if self.show_modulation:
+            return I + Q, I, Q
+        
+        return I + Q
 
     def modulated_plot(self):
         """Plots digital and modulated signals."""
-        graphtime, digitaltransmission, modulated = self.generate_signals()
 
-        fig, (ax1, ax2) = plt.subplots(2, 1, constrained_layout=True)
-        ax1.plot(graphtime, digitaltransmission)
-        ax1.set_title("Digital Signal")
-        ax1.set_ylabel("Amplitude")
-        ax1.vlines(graphtime[::int(self.period / self.Sampling_Rate)], -0.5, 1.5, colors='r', linestyles='dashed', alpha=0.5)
+        # Generate signals
+        graphtime, digitaltransmission, modulated, I, Q = self.generate_signals()
 
-        ax2.plot(graphtime, modulated)
-        ax2.set_title(f'Modulated Signal: {self.mod_mode_select}')
-        ax2.set_ylabel("Amplitude")
-        ax2.vlines(graphtime[::int(self.period / self.Sampling_Rate)], -1*(max(modulated))-0.5, max(modulated)+0.5, colors='r', linestyles='dashed', alpha=0.5)
-        ax2.set_xlabel("Time (s)")
+        # Determine the number of subplots based on the show_modulation flag
+        num_subplots = 3 if self.show_modulation else 2
+        fig, ax = plt.subplots(num_subplots, 1, constrained_layout=True)
+
+        # Plot the digital signal (First subplot, always present)
+        ax[0].plot(graphtime, digitaltransmission)
+        ax[0].set_title("Digital Signal")
+        ax[0].set_ylabel("Amplitude")
+        ax[0].vlines(
+            graphtime[::int(self.period / self.Sampling_Rate)], 
+            -0.5, 1.5, 
+            colors='r', linestyles='dashed', alpha=0.5
+        )
+
+        if self.show_modulation:
+            # Plot In-Phase and Quadrature components (Second subplot)
+            ax[1].set_title("Sub-Carriers")
+            ax[1].set_ylabel("Amplitude")
+            ax[1].plot(graphtime, I, label="In-Phase", color='g', alpha=0.75)
+            ax[1].plot(graphtime, Q, label="Quadrature", color='b', alpha=0.75)
+            ax[1].set_xticks([])
+            ax[1].vlines(
+                graphtime[::int(self.period / self.Sampling_Rate)], 
+                -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
+                colors='r', linestyles='dashed', alpha=0.5
+            )
+            ax[1].legend(
+                loc='upper right', 
+                bbox_to_anchor=(1, -0.05),  # Below the plot, aligned right
+                borderaxespad=0.0, 
+                ncol=1
+            )
+
+            # Plot the modulated signal (Third subplot)
+            ax[2].plot(graphtime, modulated)
+            ax[2].set_title(f'Modulated Signal: {self.mod_mode_select}')
+            ax[2].set_ylabel("Amplitude")
+            ax[2].set_xlabel("Time (s)")
+            ax[2].vlines(
+                graphtime[::int(self.period / self.Sampling_Rate)], 
+                -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
+                colors='r', linestyles='dashed', alpha=0.5
+            )
+
+        else:
+            # Plot the modulated signal directly if no modulation subplot
+            ax[1].plot(graphtime, modulated)
+            ax[1].set_title(f'Modulated Signal: {self.mod_mode_select}')
+            ax[1].set_ylabel("Amplitude")
+            ax[1].set_xlabel("Time (s)")
+            ax[1].vlines(
+                graphtime[::int(self.period / self.Sampling_Rate)], 
+                -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
+                colors='r', linestyles='dashed', alpha=0.5
+            )
+
+        # Display the plot
         plt.show()
 
 
