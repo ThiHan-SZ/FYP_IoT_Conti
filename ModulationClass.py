@@ -12,16 +12,18 @@ class Modulator:
     input: str = "Hello World!"
     carrier_freq: float = transmit_carrier_freq
     mod_mode_select: str = 'BPSK'
+    fileout: str = None
 
     def __post_init__(self):
         self.period = 1 / self.carrier_freq
-        self.Sampling_Rate = self.period / 96000 #Sampling rate
+        self.Sampling_Rate = 960000 #Sampling rate
+        self.Sample_Time = self.period / self.Sampling_Rate # Time step between samples
         self.symbol_rate = mod_mode[self.mod_mode_select]
         self.show_modulation = False
 
     def generate_wave(self, wave_type='cos'):
         """Precomputes cosine or sine wave for carrier frequency."""
-        t = np.arange(0, self.period, self.Sampling_Rate)
+        t = np.arange(0, self.period, self.Sample_Time)
         return np.cos(2 * np.pi * self.carrier_freq * t) if wave_type == 'cos' else np.sin(2 * np.pi * self.carrier_freq * t)
 
     def generate_signals(self):
@@ -58,13 +60,13 @@ class Modulator:
         """Converts input string to a bit stream."""
         bitstring = ''.join(f'{byte:08b}' for byte in self.input.encode('utf-8'))
         bit_period = self.period / self.symbol_rate
-        graph_time = np.arange(0, math.ceil(len(bitstring)/10)*10*bit_period + self.Sampling_Rate, self.Sampling_Rate)
+        graph_time = np.arange(0, math.ceil(len(bitstring)/10)*10*bit_period + self.Sample_Time, self.Sample_Time)
         return graph_time, bitstring
 
     def digital_signal(self, bitstream):
         """Generates digital signal from bitstream, adjusted with the symbol rate."""
         symbol_duration = self.period / self.symbol_rate  # Duration of each symbol
-        samples_per_symbol = math.floor(symbol_duration / self.Sampling_Rate)  # Samples per symbol
+        samples_per_symbol = math.floor(symbol_duration / self.Sample_Time)  # Samples per symbol
 
         # Create the digital signal using np.repeat
         signal = np.concatenate([
@@ -114,6 +116,10 @@ class Modulator:
         # Generate signals
         graphtime, digitaltransmission, modulated, I, Q = self.generate_signals()
 
+        if self.fileout != None:
+            scaled_modulated = (modulated - min(modulated)) / (max(modulated) - min(modulated))
+            f = 1
+
         # Determine the number of subplots based on the show_modulation flag
         num_subplots = 3 if self.show_modulation else 2
         fig, ax = plt.subplots(num_subplots, 1, constrained_layout=True)
@@ -123,7 +129,7 @@ class Modulator:
         ax[0].set_title("Digital Signal")
         ax[0].set_ylabel("Amplitude")
         ax[0].vlines(
-            graphtime[::int(self.period / self.Sampling_Rate)], 
+            graphtime[::int(self.period / self.Sample_Time)], 
             -0.5, 1.5, 
             colors='r', linestyles='dashed', alpha=0.5
         )
@@ -136,7 +142,7 @@ class Modulator:
             ax[1].plot(graphtime, Q, label="Quadrature", color='b', alpha=0.75)
             ax[1].set_xticks([])
             ax[1].vlines(
-                graphtime[::int(self.period / self.Sampling_Rate)], 
+                graphtime[::int(self.period / self.Sample_Time)], 
                 -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
                 colors='r', linestyles='dashed', alpha=0.5
             )
@@ -153,7 +159,7 @@ class Modulator:
             ax[2].set_ylabel("Amplitude")
             ax[2].set_xlabel("Time (s)")
             ax[2].vlines(
-                graphtime[::int(self.period / self.Sampling_Rate)], 
+                graphtime[::int(self.period / self.Sample_Time)], 
                 -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
                 colors='r', linestyles='dashed', alpha=0.5
             )
@@ -165,7 +171,7 @@ class Modulator:
             ax[1].set_ylabel("Amplitude")
             ax[1].set_xlabel("Time (s)")
             ax[1].vlines(
-                graphtime[::int(self.period / self.Sampling_Rate)], 
+                graphtime[::int(self.period / self.Sample_Time)], 
                 -1 * (max(modulated)) - 0.5, max(modulated) + 0.5, 
                 colors='r', linestyles='dashed', alpha=0.5
             )
@@ -183,6 +189,6 @@ if __name__ == "__main__":
         if mod_mode_select in mod_mode:
             break
         print("Invalid modulation mode. Please reselect.")
-
+    fileout = input("Enter the file name to save the plot (Press Enter to skip): ")
     modulator = Modulator(input_message, carrier_freq, mod_mode_select)
     modulator.modulated_plot()
