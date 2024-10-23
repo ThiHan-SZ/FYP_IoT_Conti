@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+import scipy.io.wavfile as wav
 import math
 import pickle
 from dataclasses import dataclass
@@ -9,10 +10,9 @@ transmit_carrier_freq = 10
 
 @dataclass
 class Modulator:
-    input: str = "Hello World!"
+    input_msg: str = "Hello World!"
     carrier_freq: float = transmit_carrier_freq
     mod_mode_select: str = 'BPSK'
-    fileout: str = None
 
     def __post_init__(self):
         self.period = 1 / self.carrier_freq
@@ -20,6 +20,7 @@ class Modulator:
         self.Sample_Time = self.period / self.Sampling_Rate # Time step between samples
         self.symbol_rate = mod_mode[self.mod_mode_select]
         self.show_modulation = False
+        self.fileout =  None if input("Do you want to save the plot? (Y/N): ").upper() != 'Y' else input("Enter the file name: ")
 
     def generate_wave(self, wave_type='cos'):
         """Precomputes cosine or sine wave for carrier frequency."""
@@ -58,7 +59,7 @@ class Modulator:
 
     def user_char_to_bitstream(self):
         """Converts input string to a bit stream."""
-        bitstring = ''.join(f'{byte:08b}' for byte in self.input.encode('utf-8'))
+        bitstring = ''.join(f'{byte:08b}' for byte in self.input_msg.encode('utf-8'))
         bit_period = self.period / self.symbol_rate
         graph_time = np.arange(0, math.ceil(len(bitstring)/10)*10*bit_period + self.Sample_Time, self.Sample_Time)
         return graph_time, bitstring
@@ -94,7 +95,7 @@ class Modulator:
     def qam_modulation(self, bitstream):
         """Handles generic QAM modulation."""
         qam_order = mod_mode[self.mod_mode_select]
-        assert len(bitstream) % qam_order == 0, f"{self.mod_mode_select} requires symbol size {qam_order}."
+        assert len(bitstream) % qam_order == 0, f"{self.mod_mode_select} requires symbol size {qam_order}. Got {len(bitstream)} bits."
 
         with open(rf'QAM_LUT_pkl\{self.mod_mode_select}.pkl', 'rb') as f:
             qam_map = pickle.load(f)
@@ -109,7 +110,7 @@ class Modulator:
             return I + Q, I, Q
         
         return I + Q
-
+    
     def modulated_plot(self):
         """Plots digital and modulated signals."""
 
@@ -189,6 +190,5 @@ if __name__ == "__main__":
         if mod_mode_select in mod_mode:
             break
         print("Invalid modulation mode. Please reselect.")
-    fileout = input("Enter the file name to save the plot (Press Enter to skip): ")
     modulator = Modulator(input_message, carrier_freq, mod_mode_select)
     modulator.modulated_plot()
