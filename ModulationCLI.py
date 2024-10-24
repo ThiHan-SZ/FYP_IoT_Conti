@@ -3,22 +3,23 @@ import numpy as np
 import scipy.io.wavfile as wav
 import math
 import pickle
-from dataclasses import dataclass
+from dataclasses import dataclass , field
 
-mod_mode = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-transmit_carrier_freq = 10
+
 
 @dataclass
 class Modulator:
+    mod_mode = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
+    
     input_msg: str = "Hello World!"
-    carrier_freq: float = transmit_carrier_freq
+    carrier_freq: int = 10
     mod_mode_select: str = 'BPSK'
 
     def __post_init__(self):
         self.period = 1 / self.carrier_freq
-        self.Sampling_Rate = 960000 #Sampling rate
+        self.Sampling_Rate = 44100 #Sampling rate
         self.Sample_Time = self.period / self.Sampling_Rate # Time step between samples
-        self.symbol_rate = mod_mode[self.mod_mode_select]
+        self.symbol_rate = self.mod_mode[self.mod_mode_select]
         self.show_modulation = False
         self.fileout =  None if input("Do you want to save the plot? (Y/N): ").upper() != 'Y' else input("Enter the file name: ")
 
@@ -31,7 +32,7 @@ class Modulator:
         graphtime, bitstr = self.user_char_to_bitstream()
         digital_transmission = self.digital_signal(bitstr)
 
-        if mod_mode[self.mod_mode_select] != 1:
+        if self.mod_mode[self.mod_mode_select] != 1:
             self.show_modulation = input("Do you want to see the consituent sub-carriers? (Y/N): ").upper() == 'Y'
         if self.show_modulation:
             modulated, I, Q = self.modulate(bitstr)
@@ -94,7 +95,7 @@ class Modulator:
 
     def qam_modulation(self, bitstream):
         """Handles generic QAM modulation."""
-        qam_order = mod_mode[self.mod_mode_select]
+        qam_order = self.mod_mode[self.mod_mode_select]
         assert len(bitstream) % qam_order == 0, f"{self.mod_mode_select} requires symbol size {qam_order}. Got {len(bitstream)} bits."
 
         with open(rf'QAM_LUT_pkl\{self.mod_mode_select}.pkl', 'rb') as f:
@@ -118,8 +119,16 @@ class Modulator:
         graphtime, digitaltransmission, modulated, I, Q = self.generate_signals()
 
         if self.fileout != None:
-            scaled_modulated = (modulated - min(modulated)) / (max(modulated) - min(modulated))
-            f = 1
+            amplitude_scaler = 1 if self.mod_mode_select == 'BPSK' or self.mod_mode_select == 'QPSK' else math.sqrt(2) * (2**(self.mod_mode[self.mod_mode_select] / 2) - 1)
+            '''
+                Scale modulated signal to fit within -1 to 1 range for saving to .wav file 
+                QPSK and BPSK are scaled to 1
+                QAM signals are scaled to 2^(n/2) - 1 where n is the number of bits per symbol
+            '''
+            scaled_modulated = modulated / amplitude_scaler
+
+            wav.write(self.fileout + '.wav', self.Sampling_Rate, scaled_modulated[::self.carrier_freq//self.Sampling_Rate])
+            
 
         # Determine the number of subplots based on the show_modulation flag
         num_subplots = 3 if self.show_modulation else 2
@@ -183,11 +192,16 @@ class Modulator:
 
 if __name__ == "__main__":
     input_message = input("Enter the message to be transmitted: ") or "Hello World!"
-    carrier_freq = float(input("Enter the carrier frequency: ") or transmit_carrier_freq)
+    carrier_freq = int(input("Enter the carrier frequency: ") or 10)
+
+    with open(rf'55kb.txt', 'rb') as f:
+        text = f.read().decode('utf-8')
+
+    input_message = text
 
     while True:
         mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
-        if mod_mode_select in mod_mode:
+        if mod_mode_select in Modulator.mod_mode:
             break
         print("Invalid modulation mode. Please reselect.")
     modulator = Modulator(input_message, carrier_freq, mod_mode_select)
