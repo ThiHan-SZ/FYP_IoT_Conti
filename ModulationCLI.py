@@ -194,11 +194,6 @@ if __name__ == "__main__":
     input_message = input("Enter the message to be transmitted: ") or "Hello World!"
     carrier_freq = int(input("Enter the carrier frequency: ") or 10)
 
-    with open(rf'55kb.txt', 'rb') as f:
-        text = f.read().decode('utf-8')
-
-    input_message = text
-
     while True:
         mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
         if mod_mode_select in Modulator.mod_mode:
