@@ -79,7 +79,7 @@ class Modulator:
         '''Upscaling the signal to the carrier frequency'''
         I_processed = Shaped_Pulse.real
         Q_processed = Shaped_Pulse.imag
-        I_FC = I_processed  * np.cos(2*np.pi*self.carrier_freq*t_Shaped_Pulse) 
+        I_FC = I_processed  *  np.cos(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
         Q_FC = Q_processed  * -np.sin(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
 
         if self.IQenevlope_plot_choice == 'Y':
@@ -110,7 +110,8 @@ class Modulator:
     def plot_digital_signal(self,bitstr):
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
         self.ax[0].step(x_axis_digital, digital_signal, where="post")
-        self.ax[0].set_xticks(x_axis_digital)
+        self.ax[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
+        #self.ax[0].set_xticks(x_axis_digital)
         self.ax[0].set_ylabel("Digital Signal")
 
 
