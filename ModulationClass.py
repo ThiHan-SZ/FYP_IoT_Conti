@@ -8,20 +8,22 @@ class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
 
     def __init__(self, modulation_mode, bit_rate,carrier_freq) -> None:
-        self.sampling_rate = 2*2*carrier_freq # 2x Oversampling Factor for any CF
+       
+        #Plot Parameters
+        self.plot_choice = None
+        self.IQenevlope_plot_choice = None
+        self.fig, self.ax = plt.subplots(2, 1, constrained_layout=True)
+
+        #Modulation Parameters
         self.carrier_freq = carrier_freq
         self.modulation_mode = modulation_mode
         self.order = self.modulation_modes[modulation_mode]
-        self.plot_choice = None
-        self.IQenevlope_plot_choice = None
-        self.fig, self.ax = self.setup_plot()
+
+        #Bit Rate Parameters
         self.baud_rate = bit_rate/self.order
         self.symbol_period = 1/self.baud_rate
-
-    def setup_plot(self):
-        self.plot_choice = input("Do you want to plot I and Q? (Y/N): ").upper() if self.modulation_mode[:2] == 'QAM' or self.modulation_mode == "QPSK"  else 'N'
-        num_plots = 3 if self.plot_choice == 'Y' else 2
-        return plt.subplots(num_plots, 1, constrained_layout=True)
+        self.oversampling_factor = 10
+        self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF
         
     def msgchar2bit(self, msg):
         return list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
@@ -41,29 +43,43 @@ class Modulator:
             return self.qam_modulation(bitstr)
         
     def bpsk_modulation(self, bitstr):
-        pass
+        
+        I = np.array([2*int(bit)-1 for bit in bitstr[:-2]])
+        Q = np.zeros_like(I)
+
+        self.IQenevlope_plot_choice = input("Do you want to plot I and Q? (Y/N): ").upper()
+
+        return self.modulator_calculations(I, Q, bitstr[:-2])
 
     def qpsk_modulation(self, bitstr):
-        pass
+        assert len(bitstr[:-2]) % self.order == 0, f"{self.modulation_mode} requires symbol size {self.order}. Got {len(bitstr)} bits."
+
+        bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
+        I = np.array([2*int(group[0])-1 for group in bitgroups])
+        Q = np.array([2*int(group[1])-1 for group in bitgroups])
+
+        self.IQenevlope_plot_choice = input("Do you want to plot I and Q? (Y/N): ").upper()
+
+        return self.modulator_calculations(I, Q, bitgroups)
 
     def qam_modulation(self, bitstr):
-        assert len(bitstr) % self.order == 0, f"{self.modulation_mode} requires symbol size {self.order}. Got {len(bitstr)} bits."
+        assert len(bitstr[:-2]) % self.order == 0, f"{self.modulation_mode} requires symbol size {self.order}. Got {len(bitstr)} bits."
 
         with open(rf'QAM_LUT_pkl\{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
-        bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr), self.order)]
+        bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
 
         I = np.array([qam_constellations[group]['I'] for group in bitgroups])
         Q = np.array([qam_constellations[group]['Q'] for group in bitgroups])
 
         self.IQenevlope_plot_choice = input("Do you want to plot I and Q? (Y/N): ").upper()
 
-        return self.qam_calculations(I, Q, bitgroups)
+        return self.modulator_calculations(I, Q, bitgroups)
 
-    def qam_calculations(self, I, Q, bitgroups):
+    def modulator_calculations(self, I, Q, bitgroups):
         '''Simulation of the Digital Baseband Signal to Analog Modulation''' 
-        samples_per_symbol = int(24*self.symbol_period*self.carrier_freq) 
+        samples_per_symbol = int(self.symbol_period*self.sampling_rate) 
 
         Dirac_Comb = np.zeros(len(bitgroups)*samples_per_symbol,dtype=complex)
         Dirac_Comb[::samples_per_symbol] = I + 1j*Q
@@ -88,7 +104,7 @@ class Modulator:
         return t_Shaped_Pulse,  I_FC + Q_FC
 
     def plot_IQ_internal(self, t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay):
-        fig, ax = plt.subplots(4, 2, constrained_layout=True)
+        fig, ax = plt.subplots(2, 2, constrained_layout=True)
         ax[0,0].plot((t_Dirac_Comb+RRC_delay)/self.symbol_period, Dirac_Comb.real, label='$x(t)$') # artificial extra delay for the baseband samples
         ax[0,0].plot(t_Shaped_Pulse/self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
         ax[0,0].set_title("Real Part")
@@ -107,12 +123,26 @@ class Modulator:
         ax[1,1].set_ylabel("Amplitude")
         ax[1,1].set_xlabel("Time (s)")
 
+
     def plot_digital_signal(self,bitstr):
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
         self.ax[0].step(x_axis_digital, digital_signal, where="post")
         self.ax[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
         #self.ax[0].set_xticks(x_axis_digital)
         self.ax[0].set_ylabel("Digital Signal")
+
+    def plot_modulated_signal(self, t, modulated_signal):
+        self.ax[1].plot(t, modulated_signal)
+        self.ax[1].set_title(f'Modulated Signal: {self.modulation_mode}')
+        self.ax[1].set_ylabel("Amplitude")
+        self.ax[1].set_xlabel("Time (s)")
+        #self.ax[1].vlines(t[::], -1 * (max(modulated_signal)) - 0.5, max(modulated_signal) + 0.5, colors='r', linestyles='dashed', alpha=0.5)
+
+    def plot_full(self,message):
+        bitstr = self.msgchar2bit(message)
+        self.plot_digital_signal(bitstr)
+        self.plot_modulated_signal(*self.modulate(bitstr))
+        plt.show()
 
 
 
@@ -141,14 +171,8 @@ def main():
             break
         print("Invalid modulation mode. Please reselect.")
 
-    modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq)
-    bitstring = modulator.msgchar2bit(message)
-    modulator.modulate(bitstring)
-
-    print(bitstring)
-
-    modulator.plot_digital_signal(bitstring)
-    plt.show()
+    modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq)    
+    modulator.plot_full(message)
 
 
 if __name__ == "__main__":
