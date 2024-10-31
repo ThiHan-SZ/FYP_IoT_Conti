@@ -1,8 +1,10 @@
 import commpy.filters
 from matplotlib import pyplot as plt
+from scipy.io import wavfile as wav
 import numpy as np
 import pickle
 import commpy
+import math
 
 class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
@@ -101,10 +103,10 @@ class Modulator:
         if self.IQenevlope_plot_choice == 'Y':
             self.plot_IQ_internal(t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay)
 
-        return t_Shaped_Pulse,  I_FC + Q_FC
+        return (t_Shaped_Pulse)/self.oversampling_factor,  I_FC + Q_FC
 
     def plot_IQ_internal(self, t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay):
-        fig, ax = plt.subplots(2, 2, constrained_layout=True)
+        fig, ax = plt.subplots(3, 2, constrained_layout=True)
         ax[0,0].plot((t_Dirac_Comb+RRC_delay)/self.symbol_period, Dirac_Comb.real, label='$x(t)$') # artificial extra delay for the baseband samples
         ax[0,0].plot(t_Shaped_Pulse/self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
         ax[0,0].set_title("Real Part")
@@ -112,17 +114,40 @@ class Modulator:
         ax[0,1].plot(t_Shaped_Pulse/self.symbol_period, Shaped_Pulse.imag)
         ax[0,1].set_title("Imaginary Part")
         
-        ax[1,0].plot(t_Shaped_Pulse,I_FC)
-        ax[1,0].plot(t_Shaped_Pulse,I_processed)
+        ax[1,0].plot(t_Shaped_Pulse/self.symbol_period,I_FC)
+        ax[1,0].plot(t_Shaped_Pulse/self.symbol_period,I_processed)
         ax[1,0].set_title("I Signal")
         ax[1,0].set_ylabel("Amplitude")
         ax[1,0].set_xlabel("Time (s)")
-        ax[1,1].plot(t_Shaped_Pulse,Q_FC)
-        ax[1,1].plot(t_Shaped_Pulse,Q_processed)
+        ax[1,1].plot(t_Shaped_Pulse/self.symbol_period,Q_FC)
+        ax[1,1].plot(t_Shaped_Pulse/self.symbol_period,Q_processed)
         ax[1,1].set_title("Q Signal")
         ax[1,1].set_ylabel("Amplitude")
         ax[1,1].set_xlabel("Time (s)")
 
+        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x[::],n=len(x)))/len(x))
+
+        f_spec_x_axis = np.linspace(-self.sampling_rate/2,self.sampling_rate/2,len(Shaped_Pulse),endpoint=False)
+
+        freq_range = self.carrier_freq*2
+        range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
+
+        f_spec_x_axis = f_spec_x_axis[range_indices]
+        I_spectrum = spectrum(I_processed)[range_indices]
+        Q_spectrum = spectrum(Q_processed)[range_indices]
+        I_FC_spectrum = spectrum(I_FC)[range_indices]
+        Q_FC_spectrum = spectrum(Q_FC)[range_indices]
+
+        ax[2,0].plot(f_spec_x_axis,I_spectrum)
+        ax[2,0].plot(f_spec_x_axis,I_FC_spectrum)
+        ax[2,0].set_title("I Spectrum")
+        ax[2,0].set_ylabel("Magnitude")
+        ax[2,0].set_xlabel("Frequency (Hz)")
+        ax[2,1].plot(f_spec_x_axis,Q_spectrum)
+        ax[2,1].plot(f_spec_x_axis,Q_FC_spectrum)
+        ax[2,1].set_title("Q Spectrum")
+        ax[2,1].set_ylabel("Magnitude")
+        ax[2,1].set_xlabel("Frequency (Hz)")
 
     def plot_digital_signal(self,bitstr):
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
@@ -141,9 +166,23 @@ class Modulator:
     def plot_full(self,message):
         bitstr = self.msgchar2bit(message)
         self.plot_digital_signal(bitstr)
-        self.plot_modulated_signal(*self.modulate(bitstr))
+        t, modulated_signal = self.modulate(bitstr)
+        self.plot_modulated_signal(t, modulated_signal)
         plt.show()
+        return t, modulated_signal
 
+    def save(self, filename, modulated_signal):
+        
+        norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal))
+        norm_modulated_signal = np.array(norm_modulated_signal, dtype=np.float32)
+
+        wav.write(filename, 4*self.carrier_freq, norm_modulated_signal)
+        print(f"Modulated signal saved as {filename}")
+
+    def plot_and_save(self, message, filename):
+        bitstr = self.msgchar2bit(message)
+        t, modulated_signal = self.plot_full(message)
+        self.save(filename+'.wav', modulated_signal)
 
 
 def main():
@@ -171,8 +210,13 @@ def main():
             break
         print("Invalid modulation mode. Please reselect.")
 
-    modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq)    
-    modulator.plot_full(message)
+    modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq) 
+
+    if input("Do you want to save the modulated signal? (Y/N): ").upper() == 'Y':
+        filename = input("Enter the filename to save the modulated signal: ")
+        modulator.plot_and_save(message, filename)
+    else:
+        modulator.plot_full(message)
 
 
 if __name__ == "__main__":
