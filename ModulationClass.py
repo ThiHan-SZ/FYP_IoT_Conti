@@ -32,9 +32,10 @@ class Modulator:
 
     def digitalsignal(self, bitstr):
         bitstr.extend(['0', '0'])
-        signal_duration = len(bitstr) / self.order / self.carrier_freq
-        x_axis_digitalsig, _ = np.linspace(0, signal_duration, len(bitstr), retstep=True, endpoint=False)
-        return bitstr, x_axis_digitalsig
+        signal_duration = len(bitstr)*self.symbol_period
+        x_axis_digital = np.linspace(0, signal_duration, len(bitstr), endpoint=False)
+        digital_signal = np.array([int(bit) for bit in bitstr])
+        return digital_signal, x_axis_digital
     
     def modulate(self, bitstr):
         if self.modulation_mode == 'BPSK':
@@ -103,7 +104,7 @@ class Modulator:
         if self.IQenevlope_plot_choice == 'Y':
             self.plot_IQ_internal(t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay)
 
-        return (t_Shaped_Pulse)/self.oversampling_factor,  I_FC + Q_FC
+        return t_Shaped_Pulse,  I_FC + Q_FC
 
     def plot_IQ_internal(self, t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay):
         fig, ax = plt.subplots(3, 2, constrained_layout=True)
@@ -153,7 +154,6 @@ class Modulator:
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
         self.ax[0].step(x_axis_digital, digital_signal, where="post")
         self.ax[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
-        #self.ax[0].set_xticks(x_axis_digital)
         self.ax[0].set_ylabel("Digital Signal")
 
     def plot_modulated_signal(self, t, modulated_signal):
@@ -161,7 +161,6 @@ class Modulator:
         self.ax[1].set_title(f'Modulated Signal: {self.modulation_mode}')
         self.ax[1].set_ylabel("Amplitude")
         self.ax[1].set_xlabel("Time (s)")
-        #self.ax[1].vlines(t[::], -1 * (max(modulated_signal)) - 0.5, max(modulated_signal) + 0.5, colors='r', linestyles='dashed', alpha=0.5)
 
     def plot_full(self,message):
         bitstr = self.msgchar2bit(message)
@@ -180,8 +179,7 @@ class Modulator:
         print(f"Modulated signal saved as {filename}")
 
     def plot_and_save(self, message, filename):
-        bitstr = self.msgchar2bit(message)
-        t, modulated_signal = self.plot_full(message)
+        _, modulated_signal = self.plot_full(message)
         self.save(filename+'.wav', modulated_signal)
 
 
