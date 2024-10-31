@@ -4,7 +4,7 @@ from scipy.io import wavfile as wav
 import numpy as np
 import pickle
 import commpy
-import math
+
 
 class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
@@ -167,7 +167,7 @@ class Modulator:
         self.plot_digital_signal(bitstr)
         t, modulated_signal = self.modulate(bitstr)
         self.plot_modulated_signal(t, modulated_signal)
-        plt.show()
+        #plt.show()
         return t, modulated_signal
 
     def save(self, filename, modulated_signal):
@@ -175,12 +175,13 @@ class Modulator:
         norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal))
         norm_modulated_signal = np.array(norm_modulated_signal, dtype=np.float32)
 
-        wav.write(filename, 4*self.carrier_freq, norm_modulated_signal)
+        wav.write(filename, self.sampling_rate, norm_modulated_signal)
         print(f"Modulated signal saved as {filename}")
 
     def plot_and_save(self, message, filename):
-        _, modulated_signal = self.plot_full(message)
+        t, modulated_signal = self.plot_full(message)
         self.save(filename+'.wav', modulated_signal)
+        return t, modulated_signal
 
 
 def main():
@@ -210,11 +211,18 @@ def main():
 
     modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq) 
 
+    from ChannelClass import SimpleGWNChannel_dB # Importing the Channel Class for adding noise to the signal only for demonstration purposes
+
     if input("Do you want to save the modulated signal? (Y/N): ").upper() == 'Y':
         filename = input("Enter the filename to save the modulated signal: ")
-        modulator.plot_and_save(message, filename)
+        t,signal = modulator.plot_and_save(message, filename)
     else:
-        modulator.plot_full(message)
+        t,signal = modulator.plot_full(message)
+
+    signal_noisy = SimpleGWNChannel_dB(5).add_noise(signal)
+    fig = plt.figure()
+    plt.plot(t, signal_noisy)
+    plt.show()
 
 
 if __name__ == "__main__":
