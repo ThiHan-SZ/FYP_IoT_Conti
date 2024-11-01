@@ -2,6 +2,7 @@ import commpy.filters
 from matplotlib import pyplot as plt
 from scipy.io import wavfile as wav
 import numpy as np
+import scipy.signal as sig
 import pickle
 import commpy
 
@@ -31,6 +32,9 @@ class Modulator:
         return list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
 
     def digitalsignal(self, bitstr):
+        if len(bitstr) % self.order != 0:
+            bitstr.extend(['0']*(self.order - len(bitstr) % self.order))
+
         bitstr.extend(['0', '0'])
         signal_duration = len(bitstr)*self.symbol_period
         x_axis_digital = np.linspace(0, signal_duration, len(bitstr), endpoint=False)
@@ -55,7 +59,6 @@ class Modulator:
         return self.modulator_calculations(I, Q, bitstr[:-2])
 
     def qpsk_modulation(self, bitstr):
-        assert len(bitstr[:-2]) % self.order == 0, f"{self.modulation_mode} requires symbol size {self.order}. Got {len(bitstr)} bits."
 
         bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
         I = np.array([2*int(group[0])-1 for group in bitgroups])
@@ -66,7 +69,6 @@ class Modulator:
         return self.modulator_calculations(I, Q, bitgroups)
 
     def qam_modulation(self, bitstr):
-        assert len(bitstr[:-2]) % self.order == 0, f"{self.modulation_mode} requires symbol size {self.order}. Got {len(bitstr)} bits."
 
         with open(rf'QAM_LUT_pkl\{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
@@ -92,7 +94,7 @@ class Modulator:
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
         
-        Shaped_Pulse = np.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function
+        Shaped_Pulse = sig.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function
         t_Shaped_Pulse = np.linspace(0,len(Shaped_Pulse)/self.sampling_rate,len(Shaped_Pulse),endpoint=False)
         
         '''Upscaling the signal to the carrier frequency'''
@@ -185,7 +187,11 @@ class Modulator:
 
 
 def main():
-    message = input("Enter the message: ")
+    #message = input("Enter the message: ")
+
+    with open(r'TestcaseFiles\AsciiTable.txt', 'r', encoding='utf-8') as f:
+        message = f.read()
+
     while True:
         try:
             carrier_freq = int(input("Enter the carrier frequency: "))
