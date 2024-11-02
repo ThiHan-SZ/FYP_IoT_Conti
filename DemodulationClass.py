@@ -9,11 +9,13 @@ from ChannelClass import SimpleGWNChannel_dB
 class Demodulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
     
-    def __init__(self, modulation_mode, bit_rate,carrier_freq) -> None:
+    def __init__(self, modulation_mode, bit_rate,carrier_freq, plot_IQ, plot_constellation) -> None:
        
         #Plot Parameters
-        self.plot_choice = None
-        self.IQenevlope_plot_choice = None
+        self.plot_IQ = plot_IQ
+        self.plot_constellation = plot_constellation
+        self.fig = plt.figure(constrained_layout=True)
+        self.ax = self.plot_setup(self.fig)
 
         #Demodulation Parameters
         self.carrier_freq = carrier_freq
@@ -25,6 +27,7 @@ class Demodulator:
         self.symbol_period = 1/self.baud_rate
         self.oversampling_factor = 10
         self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF
+        self.samples_per_symbol = int(self.sampling_rate/self.baud_rate)
 
         #Demodulation Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
@@ -59,48 +62,75 @@ class Demodulator:
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
-        return RC_signal
+        RC_signal *= 2*((2**(self.order/2))-1)
+        return RC_signal[:-(6*self.samples_per_symbol)]
     
+    def plot_setup(self, fig):
+        axes = {}
+        if self.plot_IQ and self.plot_constellation:
+            gridspec = fig.add_gridspec(nrows=3, ncols=2)
+            axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+            axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
+            axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
+        elif self.plot_IQ:
+            gridspec = fig.add_gridspec(nrows=1, ncols=2)
+            axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+            axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
+        elif self.plot_constellation:
+            gridspec = fig.add_gridspec(nrows=1, ncols=1)
+            axes['ConstPlot'] = fig.add_subplot(gridspec[0, 0])
+        return axes
+
     def plot(self, demod_signal):
-        samples_per_symbol = int(self.symbol_period*self.sampling_rate) 
-        fig, ax = plt.subplots(1,2)
         delay = self.demodulator_total_delay
         t_axis = np.linspace(0, len(demod_signal)/self.sampling_rate, len(demod_signal), endpoint=False)
-        t_samples = t_axis[delay::samples_per_symbol]
-        demod_signal_samples = demod_signal[delay::samples_per_symbol]
+        t_samples = t_axis[delay::self.samples_per_symbol]
+        demod_signal_samples = demod_signal[delay::self.samples_per_symbol]
 
-        ax[0].plot(t_axis/self.symbol_period, demod_signal.real)
-        ax[0].stem(t_samples/self.symbol_period, demod_signal_samples.real, linefmt='r-', markerfmt='ro', basefmt='r-')
-        ax[0].set_title("Demodulated Signal (Real)")
-        ax[0].set_xlabel("Symbol Periods")
-        ax[0].set_ylabel("Amplitude")
-        ax[0].grid(True)
+        self.ax['Iplot'].plot(t_axis/self.symbol_period, demod_signal.real)
+        self.ax['Iplot'].stem(t_samples/self.symbol_period, demod_signal_samples.real)
+        self.ax['Iplot'].set_title("I-Component")
+        self.ax['Iplot'].set_xlabel("Symbol Periods")
+        self.ax['Iplot'].set_ylabel("Amplitude")
+        self.ax['Iplot'].grid(True)
 
-        ax[1].plot(t_axis/self.symbol_period, demod_signal.imag)
-        ax[1].stem(t_samples/self.symbol_period, demod_signal_samples.imag, linefmt='r-', markerfmt='ro', basefmt='r-')
-        ax[1].set_title("Demodulated Signal (Imaginary)")
-        ax[1].set_xlabel("Symbol Periods")
-        ax[1].set_ylabel("Amplitude")
-        ax[1].grid(True)        
+        self.ax['Qplot'].plot(t_axis/self.symbol_period, demod_signal.imag)
+        self.ax['Qplot'].stem(t_samples/self.symbol_period, demod_signal_samples.imag)
+        self.ax['Qplot'].set_title("Q-Component")
+        self.ax['Qplot'].set_xlabel("Symbol Periods")
+        self.ax['Qplot'].set_ylabel("Amplitude")
+        self.ax['Qplot'].grid(True)
+    
+    def received_constellation(self, demod_signal):
+        demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
+        self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
+        self.ax['ConstPlot'].set_title("Received Constellation")
+        self.ax['ConstPlot'].set_xlabel("I")
+        self.ax['ConstPlot'].set_ylabel("Q")
+        self.ax['ConstPlot'].grid(True)
 
     def demod_and_plot(self, signal):
         demod_signal = self.demodulate(signal)
-        self.plot(demod_signal)
+        if self.plot_IQ:
+            self.plot(demod_signal)
+        if self.plot_constellation:
+            self.received_constellation(demod_signal)
 
-    def received_constellation(self, demod_signal):
-        samples_per_symbol = int(self.symbol_period*self.sampling_rate)
+    ###### Deprecated Functions ######
+    '''def received_constellation(self, demod_signal):
+        self.samples_per_symbol = int(self.symbol_period*self.sampling_rate)
         delay = self.demodulator_total_delay
         t_axis = np.linspace(0, len(demod_signal)/self.sampling_rate, len(demod_signal), endpoint=False)
-        t_samples = t_axis[delay::samples_per_symbol]
-        demod_signal_samples = demod_signal[delay::samples_per_symbol]
+        t_samples = t_axis[delay::self.samples_per_symbol]
+        demod_signal_samples = demod_signal[delay::self.samples_per_symbol]
 
         plt.figure()
         plt.scatter(demod_signal_samples.real, demod_signal_samples.imag)
         plt.title("Received Constellation")
         plt.xlabel("I")
         plt.ylabel("Q")
-        plt.grid(True)
-        
+        plt.grid(True)'''
+
 def main():
     while True:
         try:
@@ -115,19 +145,29 @@ def main():
         if mod_mode_select in Demodulator.modulation_modes:
             break
         print("Invalid modulation mode. Please reselect.")
+    plot_IQ = input("Plot I and Q components? (Y/N): ").upper() == 'Y'
+    plot_constellation = input("Plot Constellation? (Y/N): ").upper() == 'Y'
 
+    noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
    
 
     file = input("Enter the file name/path: ")
     # Read the modulated signal
     fs, modulated = wav.read(file)
 
-    noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
+    for i in range(noise_lower_bound,noise_upper_bound+1):
+        noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
+        demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
+        demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
+        demodulator.demod_and_plot(noisymodulatedsignal)
+        demodulator.fig.suptitle(f"SNR = {i} dB")
+
+    '''noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
 
     demodulator = Demodulator(mod_mode_select, bit_rate, fs/20)
     demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
-    demodulator.received_constellation(demodulated_signal)
-    #demodulator.demod_and_plot(modulated)
+    #demodulator.received_constellation(demodulated_signal)
+    demodulator.plot(demodulated_signal)'''
     plt.show()
 
 if __name__ == "__main__":
