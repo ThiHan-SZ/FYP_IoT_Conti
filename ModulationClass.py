@@ -83,30 +83,28 @@ class Modulator:
         return self.modulator_calculations(I, Q, bitgroups)
 
     def modulator_calculations(self, I, Q, bitgroups):
-        '''Simulation of the Digital Baseband Signal to Analog Modulation''' 
-        samples_per_symbol = int(self.symbol_period*self.sampling_rate) 
+        samples_per_symbol = int(self.symbol_period * self.sampling_rate)
+        RRC_delay = 3 * self.symbol_period
 
-        Dirac_Comb = np.zeros(len(bitgroups)*samples_per_symbol,dtype=complex)
-        Dirac_Comb[::samples_per_symbol] = I + 1j*Q
-        t_Dirac_Comb = np.linspace(0,len(Dirac_Comb)/self.sampling_rate,len(Dirac_Comb),endpoint=False)
-
-        '''FFT of Dirac_Comb will show ISI due to the Dirac Comb function, thus filter with SRRC to remove ISI'''
-        RRC_delay = 3*self.symbol_period
+        # Simulated SRRC filter and pulse shaping (replace with actual filter for real use)
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
-        
-        Shaped_Pulse = sig.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function
-        t_Shaped_Pulse = np.linspace(0,len(Shaped_Pulse)/self.sampling_rate,len(Shaped_Pulse),endpoint=False)
-        
-        '''Upscaling the signal to the carrier frequency'''
+        shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
+        Shaped_Pulse = np.zeros(shaped_pulse_length, dtype=complex)
+
+        #Lazy Dirac Comb
+        for idx, (i_val, q_val) in enumerate(zip(I, Q)):
+            start_idx = idx * samples_per_symbol
+            Shaped_Pulse[start_idx:start_idx + len(rrc)] += (i_val + 1j * q_val) * rrc
+
+        t_Shaped_Pulse = np.linspace(0, len(Shaped_Pulse) / self.sampling_rate, len(Shaped_Pulse), endpoint=False)
+
+        ###Upscaling the signal to the carrier frequency###
         I_processed = Shaped_Pulse.real
         Q_processed = Shaped_Pulse.imag
-        I_FC = I_processed  *  np.cos(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
-        Q_FC = Q_processed  * -np.sin(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
+        I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
+        Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
 
-        if self.IQenevlope_plot_choice == 'Y':
-            self.plot_IQ_internal(t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay)
-
-        return t_Shaped_Pulse,  I_FC + Q_FC
+        return t_Shaped_Pulse, I_FC + Q_FC
 
     def plot_IQ_internal(self, t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay):
         fig, ax = plt.subplots(3, 2, constrained_layout=True)
@@ -185,6 +183,33 @@ class Modulator:
         self.save(filename+'.wav', modulated_signal)
         return t, modulated_signal
 
+    ###Deprecated Functions###
+    '''def modulator_calculations(self, I, Q, bitgroups):
+        ###Simulation of the Digital Baseband Signal to Analog Modulation###
+        samples_per_symbol = int(self.symbol_period*self.sampling_rate) 
+
+        Dirac_Comb = np.zeros(len(bitgroups)*samples_per_symbol,dtype=complex)
+        Dirac_Comb[::samples_per_symbol] = I + 1j*Q
+        t_Dirac_Comb = np.linspace(0,len(Dirac_Comb)/self.sampling_rate,len(Dirac_Comb),endpoint=False)
+
+        ###FFT of Dirac_Comb will show ISI due to the Dirac Comb function, thus filter with SRRC to remove ISI###
+        RRC_delay = 3*self.symbol_period
+        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
+        
+        Shaped_Pulse = sig.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function
+        t_Shaped_Pulse = np.linspace(0,len(Shaped_Pulse)/self.sampling_rate,len(Shaped_Pulse),endpoint=False)
+        
+        ###Upscaling the signal to the carrier frequency###
+        I_processed = Shaped_Pulse.real
+        Q_processed = Shaped_Pulse.imag
+        I_FC = I_processed  *  np.cos(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
+        Q_FC = Q_processed  * -np.sin(2*np.pi*self.carrier_freq*t_Shaped_Pulse)
+
+        if self.IQenevlope_plot_choice == 'Y':
+            self.plot_IQ_internal(t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay)
+
+        return t_Shaped_Pulse,  I_FC + Q_FC'''
+    
 
 def main():
     #message = input("Enter the message: ")
@@ -228,7 +253,7 @@ def main():
     signal_noisy = SimpleGWNChannel_dB(5).add_noise(signal)
     fig = plt.figure()
     plt.plot(t, signal_noisy)
-    plt.show()
+    #plt.show()
 
 
 if __name__ == "__main__":
