@@ -1,0 +1,5 @@
+Len 12
+Hello World!
+
+Len 30
+AaZz09!@#QwEr TyUiOpLkJ123.,;-
