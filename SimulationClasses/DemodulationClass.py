@@ -14,8 +14,8 @@ class Demodulator:
         #Plot Parameters
         self.plot_IQ = plot_IQ
         self.plot_constellation = plot_constellation
-        self.fig = plt.figure(constrained_layout=True)
-        self.ax = self.plot_setup(self.fig)
+        self.fig = plt.figure(constrained_layout=True) if self.plot_IQ or self.plot_constellation else None
+        self.ax = self.plot_setup(self.fig) if self.plot_IQ or self.plot_constellation else None
 
         #Demodulation Parameters
         self.carrier_freq = carrier_freq
