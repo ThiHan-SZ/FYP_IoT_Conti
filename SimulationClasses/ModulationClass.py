@@ -104,14 +104,15 @@ class Modulator:
         I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
         Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
 
+        if self.IQenevlope_plot_choice == 'Y':
+            self.plot_IQ_internal(t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed)
+
         return t_Shaped_Pulse, I_FC + Q_FC
 
-    def plot_IQ_internal(self, t_Dirac_Comb, Dirac_Comb, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, RRC_delay):
+    def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed):
         fig, ax = plt.subplots(3, 2, constrained_layout=True)
-        ax[0,0].plot((t_Dirac_Comb+RRC_delay)/self.symbol_period, Dirac_Comb.real, label='$x(t)$') # artificial extra delay for the baseband samples
         ax[0,0].plot(t_Shaped_Pulse/self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
         ax[0,0].set_title("Real Part")
-        ax[0,1].plot((t_Dirac_Comb+RRC_delay)/self.symbol_period, Dirac_Comb.imag)
         ax[0,1].plot(t_Shaped_Pulse/self.symbol_period, Shaped_Pulse.imag)
         ax[0,1].set_title("Imaginary Part")
         
