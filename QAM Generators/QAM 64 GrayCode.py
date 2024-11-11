@@ -4,6 +4,7 @@ import pickle
 
 # QAM-64 Constellation Map (Gray Coding)
 QAM64 = {}
+RQAM64 = {}
 
 I_values = [i for i in range(-7, 8, 2)]
 Q_values = I_values[::-1]  # Reverse for symmetry
@@ -20,6 +21,11 @@ for i in range(8):  # I component (In-Phase)
 
         symbol = f'{gray_i:03b}' + f'{gray_j:03b}'  # 8-bit Gray code symbol
         QAM64[symbol] = {'I': I_values[i], 'Q': Q_values[j]}
+
+        RQAM64[(I_values[i], Q_values[j])] = symbol
+
+with open('RQAM64.pkl', 'wb') as f:
+    pickle.dump(RQAM64, f)
 
 with open('QAM64.pkl', 'wb') as f:
     pickle.dump(QAM64, f)
