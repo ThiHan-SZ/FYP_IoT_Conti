@@ -25,8 +25,10 @@ class Modulator:
         #Bit Rate Parameters
         self.baud_rate = bit_rate/self.order
         self.symbol_period = 1/self.baud_rate
+
+        #Sampler Parameters 
         self.oversampling_factor = 10
-        self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF
+        self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF 
         
     def msgchar2bit(self, msg):
         return list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
