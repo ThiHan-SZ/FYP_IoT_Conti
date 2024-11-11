@@ -1,8 +1,10 @@
 import numpy as np
 import scipy.signal as sig
+from scipy import spatial as spysp
 import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 import commpy
+import pickle
 from ChannelClass import SimpleGWNChannel_dB
 
 
@@ -62,8 +64,62 @@ class Demodulator:
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
-        RC_signal *= 2*((2**(self.order/2))-1)
+        
+        if self.order != 1:
+            RC_signal *= 2*((2**(self.order/2))-1)
+        else:
+            RC_signal *= 2
         return RC_signal[:-(6*self.samples_per_symbol)]
+    
+    def demapping(self, demod_signal):
+        I = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].real
+        Q = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
+
+        bit_array = self.DesicionDemapper(I, Q)
+
+        byte_chunks = [bit_array[i:i+8] for i in range(0, len(bit_array), 8)]
+
+        byte_values = [int(''.join(map(str, chunk)), 2) for chunk in byte_chunks]
+
+        byte_array = bytes(byte_values)
+
+        try:
+            text = byte_array.decode('utf-8')
+        except:
+            text = "Decoding Error"
+
+        return text
+
+    def DesicionDemapper(self, I, Q):
+        bitstring = [None]
+
+        if self.order == 1:
+            bitstring = np.where(I > 0, 1, 0)
+        elif self.order == 2:
+            assert len(I) == len(Q), "I and Q must be of the same length"
+
+            I_bits = np.where(I > 0, 1, 0)
+            Q_bits = np.where(Q > 0, 1, 0)
+
+            bitstring = np.zeros(len(I)*2, dtype=int)
+            bitstring[0::2] = I_bits
+            bitstring[1::2] = Q_bits 
+
+        else:
+            with open(rf'QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
+                QAM_const = pickle.load(f)
+            
+            QAM_const_coord = [k for k in QAM_const.keys()]
+
+            QAM_tree = spysp.KDTree(QAM_const_coord)
+
+            coord = [QAM_const_coord[QAM_tree.query(i)[1]] for i in list(zip(I,Q))]
+
+            bitstring = [list(QAM_const[tuple(i)]) for i in coord]
+
+            bitstring = np.array(bitstring).flatten()
+
+        return bitstring
     
     def plot_setup(self, fig):
         axes = {}
@@ -140,6 +196,7 @@ def main():
             exit()
         except:
             print("Invalid bit-rate. Please re-enter.")
+
     while True:
         mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
         if mod_mode_select in Demodulator.modulation_modes:
@@ -148,9 +205,20 @@ def main():
     plot_IQ = input("Plot I and Q components? (Y/N): ").upper() == 'Y'
     plot_constellation = input("Plot Constellation? (Y/N): ").upper() == 'Y'
 
-    noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
+    noise_lower_bound, noise_upper_bound = 0, 0
+    while True:
+        try:
+            noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
+            if noise_lower_bound > noise_upper_bound:
+                print("Invalid SNR range. Please re-enter.")
+            else:
+                break
+        except KeyboardInterrupt:
+            exit()
+        except:
+            print("Invalid SNR range. Please re-enter.")
+         
    
-
     file = input("Enter the file name/path: ")
     # Read the modulated signal
     fs, modulated = wav.read(file)
@@ -159,8 +227,10 @@ def main():
         noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
         demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
         demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
+        text = demodulator.demapping(demodulated_signal)
         demodulator.demod_and_plot(noisymodulatedsignal)
         demodulator.fig.suptitle(f"SNR = {i} dB")
+        print(f'Received Message : {text}')
 
     '''noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
 
