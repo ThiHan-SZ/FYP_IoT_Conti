@@ -215,7 +215,7 @@ class Modulator:
     
 
 def main():
-    #message = input("Enter the message: ")
+    message = input("Enter the message: ")
 
     '''
     with open(r'TestcaseFiles\AsciiTable.txt', 'r', encoding='utf-8') as f:
