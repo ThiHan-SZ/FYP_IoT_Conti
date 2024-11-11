@@ -16,3 +16,4 @@ class SimpleGWNChannel_dB:
 
         noise = normal(0, noise_std_dev, len(signal))
         return signal + noise
+    
