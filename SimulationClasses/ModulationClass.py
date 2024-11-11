@@ -254,11 +254,8 @@ def main():
         t,signal = modulator.plot_and_save(message, filename)
     else:
         t,signal = modulator.plot_full(message)
-
-    signal_noisy = SimpleGWNChannel_dB(5).add_noise(signal)
-    fig = plt.figure()
-    plt.plot(t, signal_noisy)
-    #plt.show()
+        
+    plt.show()
 
 
 if __name__ == "__main__":
