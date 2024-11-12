@@ -5,13 +5,13 @@ import scipy.io.wavfile as wav
 
 
 
-fs1,mod1 = wav.read(r'test_file__I_Love_Gaming!__200kHz_16kbps_qam64.wav')
-fs2,mod2 = wav.read(r'test_file__I_Love_Gaming!__200kHz_16kbps_qam64_-44.1kHz_-3rad.wav')
+fs1,mod1 = wav.read(r'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_BPSK.wav')
+fs2,mod2 = wav.read(r'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_BPSK.wav')
 
+fftlen = 4 * len (mod1)
+spectrum = lambda x: np.fft.fftshift(np.abs(np.fft.fft(x[::],n=fftlen)))/len(x)
 
-spectrum = lambda x: np.fft.fftshift(np.abs(np.fft.fft(x[::],n=len(x))))/len(x)
-
-f_spec_x_axis = np.linspace(-fs1/2,fs1/2,len(mod1),endpoint=False)
+f_spec_x_axis = np.linspace(-fs1/2,fs1/2,fftlen,endpoint=False)
 
 freq_range = fs1/20 * 1.25
 range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
@@ -31,23 +31,23 @@ basem1 = m1d_i + 1j*m1d_q
 basem1_spec = spectrum(basem1)[range_indices]
 
 fig, axs = plt.subplots(3,1)
-fig.suptitle('QAM16 Modulated Signal')
+fig.suptitle('BPSK Modulated Signal')
 axs[0].plot(t, m1d_i, label='I')
 axs[1].plot(t, m1d_q, label='Q')
-axs[0].set_title('QAM16 Modulated Signal (Original) I Component')
+axs[0].set_title('BPSK Modulated Signal (Original) I Component')
 axs[0].set_xlabel('Time (s)')
 axs[0].set_ylabel('Amplitude')
-axs[1].set_title('QAM16 Modulated Signal (Original) Q Component')
+axs[1].set_title('BPSK Modulated Signal (Original) Q Component')
 axs[1].set_xlabel('Time (s)')
 axs[2].plot(f_spec_x_axis, basem1_spec)
-axs[2].set_title('QAM16 Modulated Signal (Original) Spectrum')
+axs[2].set_title('BPSK Modulated Signal (Original) Spectrum')
 axs[2].set_xlabel('Frequency (Hz)')
 axs[2].set_ylabel('Magnitude')
 
 
 # initial local oscillator approximate downcoversion
-m2d_i = mod2 * np.cos(2 * np.pi * 2e5 * t)
-m2d_q = mod2 * -np.sin(2 * np.pi * 2e5 * t)
+m2d_i = mod2 * np.cos(2 * np.pi * (2e5+1e3) * t)
+m2d_q = mod2 * -np.sin(2 * np.pi * (2e5+1e3) * t)
 
 basem2_complex = m2d_i + 1j * m2d_q
 
@@ -60,9 +60,25 @@ coarse_freq = f_spec_x_axis[np.argmax(basem2_complex_buff_spec)]/2
 
 
 # Remove the coarse offset
-basem2_complex = basem2_complex * np.exp(-1j * 2 * np.pi * t * coarse_freq)
+basem2_complex = basem2_complex * np.exp(-1j * 2 * np.pi * t * (coarse_freq))
 print(coarse_freq)
 
+fig, axs2 = plt.subplots(3,1)
+fig.suptitle('BPSK Modulated Signal')
+axs2[0].plot(t, basem2_complex.real, label='I')
+axs2[1].plot(t, basem2_complex.imag, label='Q')
+axs2[0].set_title('BPSK Modulated Signal (Modified) I Component')
+axs2[0].set_xlabel('Time (s)')
+axs2[0].set_ylabel('Amplitude')
+axs2[1].set_title('BPSK Modulated Signal (Modified) Q Component')
+axs2[1].set_xlabel('Time (s)')
+axs2[2].plot(f_spec_x_axis, basem2_complex_buff_spec)
+axs2[2].set_title('BPSK Modulated Signal (Modified) Spectrum')
+axs2[2].set_xlabel('Frequency (Hz)')
+axs2[2].set_ylabel('Magnitude')
+
+
+'''
 # Costas Fine tuning
 N = len(basem2_complex)
 phase = 0
@@ -100,35 +116,7 @@ m2d_i = mod2 *  np.cos(2 * np.pi * (2e5 + total_freq) * t)
 m2d_q = mod2 * -np.sin(2 * np.pi * (2e5 + total_freq) * t)
 
 m2d_i_c = mod2 * np.cos(2 * np.pi * (2e5-44.1e3) * t)
-m2d_q_c = mod2 * -np.sin(2 * np.pi * (2e5-44.1e3) * t)
-
-fig, axs2 = plt.subplots(2,2)
-fig.suptitle('QAM16 Modulated Signal')
-axs2[0,0].plot(t, m2d_i, label='I')
-axs2[1,0].plot(t, m2d_q, label='Q')
-axs2[0,0].set_title('QAM16 Modulated Signal (Offset) I Component')
-axs2[0,0].set_xlabel('Time (s)')
-axs2[0,0].set_ylabel('Amplitude')
-axs2[1,0].set_title('QAM16 Modulated Signal (Offset) Q Component')
-axs2[1,0].set_xlabel('Time (s)')
-axs2[1,0].set_ylabel('Amplitude')
-
-axs2[0,1].plot(t, m2d_i_c, label='I')
-axs2[1,1].plot(t, m2d_q_c, label='Q')
-axs2[0,1].set_title('QAM16 Modulated Signal (Offset) I Component (Corrected)')
-axs2[0,1].set_xlabel('Time (s)')
-axs2[0,1].set_ylabel('Amplitude')
-axs2[1,1].set_title('QAM16 Modulated Signal (Offset) Q Component (Corrected)')
-axs2[1,1].set_xlabel('Time (s)')
-axs2[1,1].set_ylabel('Amplitude')
-
-
-
-plt.show()
-
-
-
-
+m2d_q_c = mod2 * -np.sin(2 * np.pi * (2e5-44.1e3) * t)'''
 
 ''' # PLOTTING Differences
 fig, axs = plt.subplots(2,3)
