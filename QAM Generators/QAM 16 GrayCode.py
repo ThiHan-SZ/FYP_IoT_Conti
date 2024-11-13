@@ -1,10 +1,11 @@
-import numpy as np
+import math
 import matplotlib.pyplot as plt 
 import pickle
 
 # QAM-16 Constellation Map (Gray Coding)
 QAM16 = {}
 RQAM16 = {}
+NQAM16 = {}
 
 I_values = [i for i in range(-3, 4, 2)]
 Q_values = I_values[::-1]  # Reverse for symmetry
@@ -23,14 +24,19 @@ for i in range(4):  # I component (In-Phase)
         QAM16[symbol] = {'I': I_values[i], 'Q': Q_values[j]}
 
         RQAM16[(I_values[i], Q_values[j])] = symbol
-        
+
+        NQAM16[symbol] = {'I': I_values[i]/(2/3*(16-1))**0.5, 'Q': Q_values[j]/(2/3*(16-1))**0.5}
+
+with open('NQAM16.pkl', 'wb') as f:
+    pickle.dump(NQAM16, f)
+
 with open('RQAM16.pkl', 'wb') as f:
     pickle.dump(RQAM16, f)
 
 with open('QAM16.pkl', 'wb') as f:
     pickle.dump(QAM16, f)
 
-with open('QAM16.pkl', 'rb') as f:
+with open('NQAM16.pkl', 'rb') as f:
     QAM16_r = pickle.load(f)
 
 for i in QAM16_r.items():

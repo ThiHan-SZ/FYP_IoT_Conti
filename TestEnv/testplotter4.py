@@ -4,18 +4,19 @@ import scipy.io.wavfile as wav
 import scipy.signal as sig
 import commpy
 
-fs ,modc = wav.read(r'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_BPSK.wav')
-_  ,modr = wav.read(r'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_BPSK.wav')
 
 mod_type = 'BPSK'
+
+fs ,modc = wav.read(rf'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_{mod_type}.wav')
+_  ,modr = wav.read(rf'WaveFiles\test_file__I_Love_Gaming!__200kHz_16kbps_{mod_type}.wav')
 
 symbol_period = 1/(16000/2)
 
 Nyquist_Bandwidth = 1/(2*symbol_period)
-low_pass_filter_cutoff = 5*Nyquist_Bandwidth
+low_pass_filter_cutoff = 0.9*Nyquist_Bandwidth
 low_pass_filter_order = 77
-low_pass_delay = (low_pass_filter_order // 2) / fs
-low_pass_filter = sig.firwin(low_pass_filter_order, low_pass_filter_cutoff/(fs/2), fs = fs)
+low_pass_filter = sig.firwin(low_pass_filter_order, low_pass_filter_cutoff / (fs / 2), fs=fs)
+
 
 RRC_delay = 3*symbol_period
 _, rrc = commpy.filters.rrcosfilter(N=int(2*fs*RRC_delay),alpha=0.5,Ts=symbol_period, Fs=fs)
@@ -34,80 +35,78 @@ spectrum = lambda x: (np.fft.fftshift(np.abs(np.fft.fft(x[::],n=fftlen)))/len(x)
 
 #Downconversion
 t = np.linspace(0,len(modc)/fs,len(modc))
-m1d_i = modc * np.cos(2 * np.pi * 2e5 * t)
-m1d_q = modc * -np.sin(2 * np.pi * 2e5 * t)
 
-basem1 = m1d_i + 1j*m1d_q
+modc_downconverted = modc * np.exp(-1j * 2 * np.pi * 2e5 * t)
 
-RC_signal = sig.convolve(basem1, rrc) / np.sum(rrc**2) * 2
+modc_i = np.real(modc_downconverted)
+modc_q = np.imag(modc_downconverted)
 
-basem1_spec = spectrum(basem1)
+print((modc_i == modc * np.cos(2 * np.pi * 2e5 * t)).all())
+print((modc_q == modc * -np.sin(2 * np.pi * 2e5 * t)).all())
 
-fig, axs = plt.subplots(5,1)
+modc_i_lp = sig.lfilter(low_pass_filter,1,modc_i)
+modc_q_lp = sig.lfilter(low_pass_filter,1,modc_q)
+
+modc_i_rrc = sig.lfilter(rrc,1,modc_i_lp)
+modc_q_rrc = sig.lfilter(rrc,1,modc_q_lp)
+
+fig, axs = plt.subplots(3,1)
 fig.suptitle(f'{mod_type} Modulated Signal (Original)')
-axs[0].plot(t, m1d_i, label='I')
-axs[1].plot(t, m1d_q, label='Q')
+axs[0].plot(t, modc_i_lp, label='I')
+axs[1].plot(t, modc_q_lp, label='Q')
 axs[1].set_title(f'{mod_type} Modulated Signal (Original) I Component')
 axs[0].set_xlabel('Time (s)')
 axs[0].set_ylabel('Amplitude')
 axs[1].set_title(f'{mod_type} Modulated Signal (Original) Q Component')
 axs[1].set_xlabel('Time (s)')
-axs[2].plot(f_spec_x_axis, basem1_spec)
+axs[2].plot(f_spec_x_axis, spectrum(modc_downconverted))
 axs[2].set_title(f'{mod_type} Modulated Signal (Original) Spectrum IQ')
 axs[2].set_xlabel('Frequency (Hz)')
 axs[2].set_ylabel('Magnitude')
-axs[3].plot(RC_signal.real)
-axs[3].set_title(f'{mod_type} Modulated Signal (Original) I Component (RC)')
-axs[3].set_xlabel('Time (s)')
-axs[3].set_ylabel('Amplitude')
-axs[4].plot(RC_signal.imag)
-axs[4].set_title(f'{mod_type} Modulated Signal (Original) Q Component (RC)')
-axs[4].set_xlabel('Time (s)')
-axs[4].set_ylabel('Amplitude')
-
 
 
 deltaF = 1000
-m2d_i = modr * np.cos(2 * np.pi * (2e5+deltaF) * t)
-m2d_q = modr * -np.sin(2 * np.pi * (2e5+deltaF) * t)
-
-basem2_complex = m2d_i + 1j * m2d_q
+modr_downconverted = modr * np.exp(-1j * 2 * np.pi * (2e5+deltaF) * t)
 
 N = 2
-basem2_complex_buff = basem2_complex**(N) # 2nd power to find the residual frequency offset
-basem2_complex_buff_spec = spectrum(basem2_complex_buff)
-coarse_freq = f_spec_x_axis[np.argmax(basem2_complex_buff_spec)]/N
 
-print(f'Coarse Frequency: {coarse_freq}')
+modr_downconverted_buffer = modr_downconverted.copy() ** N
+modr_downconverted_buffer_spectrum = spectrum(modr_downconverted_buffer)
+max_freq = f_spec_x_axis[np.argmax(modr_downconverted_buffer_spectrum)]/N
 
-basem2_complex = basem2_complex * np.exp(-1j * 2 * np.pi * t * (coarse_freq-10))
+modr_downconverted = modr_downconverted * np.exp(-1j * 2 * np.pi * (max_freq+10) * t)
 
-'''fig, axs2 = plt.subplots(3,1)
-fig.suptitle(f'{mod_type} Modulated Signal (Coarse)')
-axs2[0].plot(t, basem2_complex.real, label='I')
-axs2[1].plot(t, basem2_complex.imag, label='Q')
-axs2[1].set_title(f'{mod_type} Modulated Signal (Coarse) I Component')
-axs2[0].set_xlabel('Time (s)')
-axs2[0].set_ylabel('Amplitude')
-axs2[1].set_title(f'{mod_type} Modulated Signal (Coarse) Q Component')
-axs2[1].set_xlabel('Time (s)')
-axs2[2].plot(f_spec_x_axis, spectrum(basem2_complex))
-axs2[2].set_title(f'{mod_type} Modulated Signal (Coarse) Spectrum')
-axs2[2].set_xlabel('Frequency (Hz)')
-axs2[2].set_ylabel('Magnitude')'''
+modr_i = np.real(modr_downconverted)
+modr_q = np.imag(modr_downconverted)
 
-modr_shift = modr * np.exp(-1j * 2 * np.pi * t * (1e3))
 
-N = len(modr_shift)
+modr_i_lp = sig.lfilter(low_pass_filter,1,modr_i)
+modr_q_lp = sig.lfilter(low_pass_filter,1,modr_q)
+
+fig, axs = plt.subplots(3,1)
+fig.suptitle(f'{mod_type} Modulated Signal (Received)')
+axs[0].plot(t, modr_i_lp, label='I')
+axs[1].plot(t, modr_q_lp, label='Q')
+axs[1].set_title(f'{mod_type} Modulated Signal (Received) I Component')
+axs[0].set_xlabel('Time (s)')
+axs[0].set_ylabel('Amplitude')
+axs[1].set_title(f'{mod_type} Modulated Signal (Received) Q Component')
+axs[1].set_xlabel('Time (s)')
+axs[2].plot(f_spec_x_axis, spectrum(modr_downconverted))
+axs[2].set_title(f'{mod_type} Modulated Signal (Received) Spectrum IQ')
+axs[2].set_xlabel('Frequency (Hz)')
+axs[2].set_ylabel('Magnitude')
+
+N = len(modr_downconverted)
 phase = 0
 freq = 0
 # These next two params is what to adjust, to make the feedback loop faster or slower (which impacts stability)
-alpha = 0.15
-beta = 0.01
+alpha = 0.001
+beta = 0.0001
 out = np.zeros(N, dtype=np.complex64)
 freq_log = []
 for i in range(N):
-    out[i] = modr_shift[i] * np.exp(-1j*phase) # adjust the input sample by the inverse of the estimated phase offset
+    out[i] = modr_downconverted[i] * np.exp(-1j*phase) # adjust the input sample by the inverse of the estimated phase offset
     error = np.real(out[i]) * np.imag(out[i]) # This is the error formula for 2nd order Costas Loop (e.g. for BPSK)
 
     # Advance the loop (recalc phase and freq offset)
@@ -122,22 +121,21 @@ for i in range(N):
         phase += 2*np.pi
 
 # Plot freq over time to see how long it takes to hit the right offset
-fig, axs4 = plt.subplots(1,1)
-fig.suptitle(f'{mod_type} Modulated Signal (Fine)')
-axs4.plot(freq_log)
 
-fig, axs3 = plt.subplots(3,1)
-fig.suptitle(f'{mod_type} Modulated Signal (fine)')
-axs3[0].plot(t, out.real, label='I')
-axs3[1].plot(t, out.imag, label='Q')
-axs3[1].set_title(f'{mod_type} Modulated Signal (fine) I Component')
-axs3[0].set_xlabel('Time (s)')
-axs3[0].set_ylabel('Amplitude')
-axs3[1].set_title(f'{mod_type} Modulated Signal (fine) Q Component')
-axs3[1].set_xlabel('Time (s)')
-axs3[2].plot(f_spec_x_axis, spectrum(out))
-axs3[2].set_title(f'{mod_type} Modulated Signal (fine) Spectrum')
-axs3[2].set_xlabel('Frequency (Hz)')
-axs3[2].set_ylabel('Magnitude')
+fig, axs = plt.subplots(3,1)
+fig.suptitle(f'{mod_type} Modulated Signal (Received) Costas Loop')
+axs[0].plot(t, out.real, label='I')
+axs[1].plot(t, out.imag, label='Q')
+axs[1].set_title(f'{mod_type} Modulated Signal (Received) Costas Loop I Component')
+axs[0].set_xlabel('Time (s)')
+axs[0].set_ylabel('Amplitude')
+axs[1].set_title(f'{mod_type} Modulated Signal (Received) Costas Loop Q Component')
+axs[1].set_xlabel('Time (s)')
+axs[2].plot(t, freq_log)
+axs[2].set_title(f'{mod_type} Modulated Signal (Received) Costas Loop Frequency')
+axs[2].set_xlabel('Time (s)')
+axs[2].set_ylabel('Frequency (Hz)')
+
+
 
 plt.show()

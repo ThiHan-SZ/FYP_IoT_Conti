@@ -33,7 +33,7 @@ class Demodulator:
 
         #Demodulation Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
-        self.low_pass_filter_cutoff = 5*self.Nyquist_Bandwidth
+        self.low_pass_filter_cutoff = 1.5*self.Nyquist_Bandwidth
         self.low_pass_filter_order = 101
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
@@ -42,8 +42,9 @@ class Demodulator:
 
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
-        I = signal * np.cos(2 * np.pi * self.carrier_freq * t)
-        Q = signal * - np.sin(2 * np.pi * self.carrier_freq * t)
+        baseband_signal = signal * np.exp(-1j* 2 *np.pi * self.carrier_freq * t)
+        I = baseband_signal.real
+        Q = baseband_signal.imag
         return I, Q
     
     def low_pass_filter(self):
@@ -59,14 +60,14 @@ class Demodulator:
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
 
-        baseband_signal = I_lp + 1j*Q_lp
-        RC_signal = sig.convolve(baseband_signal, rrc) / np.sum(rrc**2) * 2
+        baseband_signal_lp = I_lp + 1j*Q_lp
+        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
         
         if self.order != 1:
-            RC_signal *= 2*((2**(self.order/2))-1)
+            RC_signal *= (2**(self.order/2))-1
         else:
             RC_signal *= 2
         return RC_signal[:-(6*self.samples_per_symbol)]
@@ -86,7 +87,7 @@ class Demodulator:
         try:
             text = byte_array.decode('utf-8')
         except:
-            text = "Decoding Error"
+            text = f"Decode Error Received : {bit_array}"
 
         return text
 
@@ -164,6 +165,12 @@ class Demodulator:
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
         self.ax['ConstPlot'].grid(True)
+        scaler = ((2**(self.order/2))-1) if self.order != 1 else 2
+        x_ticks = np.arange(-scaler-1, scaler+3, 2)
+        y_ticks = np.arange(-scaler-1, scaler+3, 2)
+        self.ax['ConstPlot'].set_xticks(x_ticks)
+        self.ax['ConstPlot'].set_yticks(y_ticks)
+
 
     def demod_and_plot(self, signal):
         demod_signal = self.demodulate(signal)
