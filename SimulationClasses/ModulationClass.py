@@ -41,6 +41,7 @@ class Modulator:
         signal_duration = len(bitstr)*self.symbol_period
         x_axis_digital = np.linspace(0, signal_duration, len(bitstr), endpoint=False)
         digital_signal = np.array([int(bit) for bit in bitstr])
+        print(f"Digital Signal: {''.join(bitstr)}")
         return digital_signal, x_axis_digital
     
     def modulate(self, bitstr):
@@ -72,7 +73,7 @@ class Modulator:
 
     def qam_modulation(self, bitstr):
 
-        with open(rf'QAM_LUT_pkl\{self.modulation_mode}.pkl', 'rb') as f:
+        with open(rf'QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
         bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
@@ -218,10 +219,12 @@ class Modulator:
 
     def save(self, filename, modulated_signal):
         
-        norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal))
-        norm_modulated_signal = np.array(norm_modulated_signal, dtype=np.float32)
+        #norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal))
+        print(np.max(np.abs(modulated_signal)))
+        modulated_signal /= 2
+        modulated_signal = np.array(modulated_signal, dtype=np.float32)
 
-        wav.write(filename, self.sampling_rate, norm_modulated_signal)
+        wav.write(filename, self.sampling_rate, modulated_signal)
         print(f"Modulated signal saved as {filename}")
 
     def plot_and_save(self, message, filename):

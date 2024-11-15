@@ -5,6 +5,7 @@ import pickle
 # QAM-1024 Constellation Map (Gray Coding)
 QAM1024 = {}
 RQAM1024 = {}
+NQAM1024 = {}
 
 I_values = [i for i in range(-31, 32, 2)]
 Q_values = I_values[::-1]  # Reverse for symmetry
@@ -23,6 +24,11 @@ for i in range(32):  # I component (In-Phase)
         QAM1024[symbol] = {'I': I_values[i], 'Q': Q_values[j]}
 
         RQAM1024[(I_values[i], Q_values[j])] = symbol
+
+        NQAM1024[symbol] = {'I': I_values[i]/(2/3*(1024-1))**0.5, 'Q': Q_values[j]/(2/3*(1024-1))**0.5}
+
+with open('NQAM1024.pkl', 'wb') as f:
+    pickle.dump(NQAM1024, f)
         
 with open('RQAM1024.pkl', 'wb') as f:
     pickle.dump(RQAM1024, f)
@@ -30,7 +36,7 @@ with open('RQAM1024.pkl', 'wb') as f:
 with open('QAM1024.pkl', 'wb') as f:
     pickle.dump(QAM1024, f)
 
-with open('QAM1024.pkl', 'rb') as f:
+with open('NQAM1024.pkl', 'rb') as f:
     QAM1024_r = pickle.load(f)
 
 for i in QAM1024_r.items():

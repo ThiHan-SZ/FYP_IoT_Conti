@@ -53,6 +53,12 @@ class Demodulator:
     
     def demodulate(self, signal):
         I_base, Q_base = self.downconverter(signal)
+
+        scaler = 2/3*(2**(self.order/2)-1) if self.order > 2 else 2
+
+        I_base *= scaler
+        Q_base *= scaler
+
         I_lp = sig.lfilter(self.low_pass_filter, 1, I_base)
         Q_lp = sig.lfilter(self.low_pass_filter, 1, Q_base)
 
@@ -66,10 +72,7 @@ class Demodulator:
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
         
-        if self.order != 1:
-            RC_signal *= (2**(self.order/2))-1
-        else:
-            RC_signal *= 2
+        
         return RC_signal[:-(6*self.samples_per_symbol)]
     
     def demapping(self, demod_signal):
@@ -87,7 +90,7 @@ class Demodulator:
         try:
             text = byte_array.decode('utf-8')
         except:
-            text = f"Decode Error Received : {bit_array}"
+            text = f"Decode Error Received : {''.join(map(str, bit_array))}"
 
         return text
 
@@ -145,14 +148,14 @@ class Demodulator:
         demod_signal_samples = demod_signal[delay::self.samples_per_symbol]
 
         self.ax['Iplot'].plot(t_axis/self.symbol_period, demod_signal.real)
-        self.ax['Iplot'].stem(t_samples/self.symbol_period, demod_signal_samples.real)
+        self.ax['Iplot'].stem(t_samples/self.symbol_period, demod_signal_samples.real, linefmt='r', markerfmt='ro')
         self.ax['Iplot'].set_title("I-Component")
         self.ax['Iplot'].set_xlabel("Symbol Periods")
         self.ax['Iplot'].set_ylabel("Amplitude")
         self.ax['Iplot'].grid(True)
 
         self.ax['Qplot'].plot(t_axis/self.symbol_period, demod_signal.imag)
-        self.ax['Qplot'].stem(t_samples/self.symbol_period, demod_signal_samples.imag)
+        self.ax['Qplot'].stem(t_samples/self.symbol_period, demod_signal_samples.imag, linefmt='r', markerfmt='ro')
         self.ax['Qplot'].set_title("Q-Component")
         self.ax['Qplot'].set_xlabel("Symbol Periods")
         self.ax['Qplot'].set_ylabel("Amplitude")
@@ -160,17 +163,18 @@ class Demodulator:
     
     def received_constellation(self, demod_signal):
         demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
-        self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
+        self.ax['ConstPlot'].scatter(demod_signal_samples.real/(2/3*(2**(self.order/2)-1)), demod_signal_samples.imag/(2/3*(2**(self.order/2)-1)))
         self.ax['ConstPlot'].set_title("Received Constellation")
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
         self.ax['ConstPlot'].grid(True)
+        '''
         scaler = ((2**(self.order/2))-1) if self.order != 1 else 2
-        x_ticks = np.arange(-scaler-1, scaler+3, 2)
-        y_ticks = np.arange(-scaler-1, scaler+3, 2)
+        x_ticks = np.arange(-scaler, scaler+1, 2)
+        y_ticks = np.arange(-scaler, scaler+1, 2)
         self.ax['ConstPlot'].set_xticks(x_ticks)
         self.ax['ConstPlot'].set_yticks(y_ticks)
-
+        '''
 
     def demod_and_plot(self, signal):
         demod_signal = self.demodulate(signal)
@@ -229,15 +233,23 @@ def main():
     file = input("Enter the file name/path: ")
     # Read the modulated signal
     fs, modulated = wav.read(file)
+    modulated *= 2 #remove the halving of the signal in the modulator
 
-    for i in range(noise_lower_bound,noise_upper_bound+1):
+    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
+    demodulated_signal = demodulator.demodulate(modulated)
+    text = demodulator.demapping(demodulated_signal)
+    demodulator.demod_and_plot(modulated)
+    demodulator.fig.suptitle("Received Signal")
+    print(f'Received Message : {text}')
+
+    '''for i in range(noise_lower_bound,noise_upper_bound+1):
         noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
         demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
         demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
         text = demodulator.demapping(demodulated_signal)
         demodulator.demod_and_plot(noisymodulatedsignal)
         demodulator.fig.suptitle(f"SNR = {i} dB")
-        print(f'Received Message : {text}')
+        print(f'Received Message : {text}')'''
 
     '''noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
 
