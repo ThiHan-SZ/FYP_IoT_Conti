@@ -3,7 +3,7 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QTextEdit, QMessageBox
+    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -27,9 +27,9 @@ class ModulationDialog(QDialog):
                 padding: 10px;
             }
             QPushButton:hover { background-color: #5e5e5e; }
+            QCheckBox { color: #ffffff; }
         """)
 
-        # Font settings
         font = QFont("SF Pro", 10)
 
         # Main layout
@@ -106,6 +106,15 @@ class ModulationDialog(QDialog):
         self.message_input.setFont(font)
         main_layout.addWidget(self.message_input)
 
+        # Additional Options (Checkboxes)
+        self.save_checkbox = QCheckBox("Save Modulated Signal", self)
+        self.save_checkbox.setFont(font)
+        main_layout.addWidget(self.save_checkbox)
+
+        self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
+        self.plot_iq_checkbox.setFont(font)
+        main_layout.addWidget(self.plot_iq_checkbox)
+
         # Run Simulation Button
         self.run_button = QPushButton("Run Simulation", self)
         self.run_button.setFont(font)
@@ -138,26 +147,44 @@ class ModulationDialog(QDialog):
         carrier_freq = self.carrier_freq_input.text()
         bit_rate = self.bit_rate_input.text()
         message = self.message_input.text()
+        save_signal = self.save_checkbox.isChecked()
+        plot_iq = self.plot_iq_checkbox.isChecked()
 
         if not carrier_freq or not bit_rate or not self.selected_mode or not message:
-            QMessageBox.warning(self, "Input Error", "Please provide all inputs and select a modulation mode.")
+            self.display_message("Please provide all inputs and select a modulation mode.")
             return
 
         try:
             carrier_freq = int(carrier_freq)
             bit_rate = int(bit_rate)
         except ValueError:
-            QMessageBox.warning(self, "Input Error", "Carrier frequency and bit rate must be integers.")
+            self.display_message("Carrier frequency and bit rate must be integers.")
             return
 
         # Instantiate the Modulator and run modulation
         try:
             modulator = Modulator(self.selected_mode, bit_rate, carrier_freq)
             bitstr = modulator.msgchar2bit(message)
+            digital_signal, _ = modulator.digitalsignal(bitstr)
             t, modulated_signal = modulator.modulate(bitstr)
+
+            # Display the digital signal
+            self.display_message(f"Digital Signal: {''.join(map(str, digital_signal))}")
+
+            if save_signal:
+                filename = "modulated_signal.wav"
+                modulator.save(filename, modulated_signal)
+                self.display_message(f"Modulated signal saved as {filename}")
+
+            if plot_iq:
+                modulator.plot_IQ_internal(*modulator.modulator_calculations(
+                    *modulator.qpsk_modulation(bitstr)
+                ))
+                self.display_message("Plotting I and Q components.")
+
             self.display_message("Modulation completed successfully.")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"An error occurred during modulation: {e}")
+            self.display_message(f"An error occurred during modulation: {e}")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -201,9 +228,19 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
+        # Initialize dialog as None
+        self.dialog = None
+
     def open_modulation_dialog(self):
-        dialog = ModulationDialog()
-        dialog.exec()
+        # Check if dialog is already open
+        if not self.dialog:
+            self.dialog = ModulationDialog()
+            self.dialog.finished.connect(self.on_dialog_closed)  # Ensure cleanup on close
+        self.dialog.show()  # Use show instead of exec to prevent nested event loop
+
+    def on_dialog_closed(self):
+        # Reset dialog to None when it’s closed
+        self.dialog = None
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
