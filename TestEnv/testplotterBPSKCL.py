@@ -23,7 +23,7 @@ _, rrc = commpy.filters.rrcosfilter(N=int(2*fs*RRC_delay),alpha=0.5,Ts=symbol_pe
 
 assert modc.shape == modr.shape
 
-fftlen = 1 * len(modc)
+fftlen = 4 * len(modc)
 
 f_spec_x_axis = np.linspace(-fs/2,fs/2,fftlen,endpoint=False)
 
@@ -64,8 +64,8 @@ axs[2].set_title(f'{mod_type} Modulated Signal (Original) Spectrum IQ')
 axs[2].set_xlabel('Frequency (Hz)')
 axs[2].set_ylabel('Magnitude')
 '''
-
-deltaF = 13000
+'''4.8khz offset max for LEO'''
+deltaF = 4800
 
 modr_downconverted = modr * np.exp(-1j * 2 * np.pi * (2e5+deltaF) * t)
 
@@ -83,14 +83,27 @@ N = len(modr_downconverted)
 phase = 0
 freq = 0
 # These next two params is what to adjust, to make the feedback loop faster or slower (which impacts stability)
+'''
 alpha = 0.132
 beta = 0.00932
+'''
+initial_alpha = 0.00025
+initial_beta = 0.0000025
+max_error = 100
+
 out = np.zeros(N, dtype=np.complex64)
 freq_log = []
 phase_log = []
+'--------------------------------'
+
+
 for i in range(N):
     out[i] = modr_downconverted[i] * np.exp(-1j*phase) # adjust the input sample by the inverse of the estimated phase offset
     error = np.real(out[i]) * np.imag(out[i]) # This is the error formula for 2nd order Costas Loop (e.g. for BPSK)
+
+    alpha = max(0.0025, initial_alpha * (1 - min(abs(error) / max_error, 1)))
+    beta = max(0.000025, initial_beta * (1 - min(abs(error) / max_error, 1)))
+
 
     # Advance the loop (recalc phase and freq offset)
     freq += (beta * error)
@@ -103,6 +116,7 @@ for i in range(N):
         phase -= 2*np.pi
     while phase < 0:
         phase += 2*np.pi
+
 
 # Plot freq over time to see how long it takes to hit the right offset
 out_i_lp = sig.lfilter(low_pass_filter,1,np.real(out))
@@ -125,3 +139,4 @@ axs2[1].set_title(f'{mod_type} Modulated Signal (Received) Costas Loop Phase')
         
 
 plt.show()
+
