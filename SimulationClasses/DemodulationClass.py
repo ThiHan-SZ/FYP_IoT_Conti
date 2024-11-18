@@ -226,6 +226,12 @@ def main():
     plot_IQ = input("Plot I and Q components? (Y/N): ").upper() == 'Y'
     plot_constellation = input("Plot Constellation? (Y/N): ").upper() == 'Y'
 
+    file = input("Enter the file name/path: ")
+    # Read the modulated signal
+    fs, modulated = wav.read(file)
+    modulated *= 2
+
+    '''
     noise_lower_bound, noise_upper_bound = 0, 0
     while True:
         try:
@@ -238,12 +244,6 @@ def main():
             exit()
         except:
             print("Invalid SNR range. Please re-enter.")
-         
-   
-    file = input("Enter the file name/path: ")
-    # Read the modulated signal
-    fs, modulated = wav.read(file)
-    modulated *= 2
 
     demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
     demodulated_signal = demodulator.demodulate(modulated)
@@ -251,22 +251,30 @@ def main():
     demodulator.demod_and_plot(modulated)
     demodulator.fig.suptitle("Received Signal")
     print(f'Received Message : {text}')
+    '''
 
-    '''for i in range(noise_lower_bound,noise_upper_bound+1):
+    '''
+    for i in range(noise_lower_bound,noise_upper_bound+1):
         noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
         demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
         demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
         text = demodulator.demapping(demodulated_signal)
         demodulator.demod_and_plot(noisymodulatedsignal)
         demodulator.fig.suptitle(f"SNR = {i} dB")
-        print(f'Received Message : {text}')'''
+        print(f'Received Message : {text}')
+    '''
 
-    '''noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
+    '''
+    SNR = int(input("Enter the SNR in dB: ")) 
+    noisymodulatedsignal = SimpleGWNChannel_dB(SNR).add_noise(modulated)
 
     demodulator = Demodulator(mod_mode_select, bit_rate, fs/20)
     demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
-    #demodulator.received_constellation(demodulated_signal)
-    demodulator.plot(demodulated_signal)'''
+    text = demodulator.demapping(demodulated_signal)
+    demodulator.demod_and_plot(modulated)
+    demodulator.fig.suptitle("Received Signal")
+    print(f'Received Message : {text}')
+    '''
     plt.show()
 
 if __name__ == "__main__":
