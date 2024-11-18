@@ -196,7 +196,6 @@ class Modulator:
         ax[2,1].set_ylabel("Magnitude")
         ax[2,1].set_xlabel("Frequency (Hz)")
 
-
     def plot_digital_signal(self,bitstr):
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
         self.ax[0].step(x_axis_digital, digital_signal, where="post")
@@ -219,8 +218,8 @@ class Modulator:
 
     def save(self, filename, modulated_signal):
         
-        #norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal))
-        print(np.max(np.abs(modulated_signal)))
+        #norm_modulated_signal = modulated_signal / np.max(np.abs(modulated_signal)) # Old Normalization
+        print(np.max(np.abs(modulated_signal))) # Debug print - Max value of the modulated signal
         modulated_signal /= 2
         modulated_signal = np.array(modulated_signal, dtype=np.float32)
 
