@@ -34,7 +34,7 @@ class Demodulator:
         #Demodulation Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
         self.low_pass_filter_cutoff = 1.5*self.Nyquist_Bandwidth
-        self.low_pass_filter_order = 101
+        self.low_pass_filter_order = 77
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
@@ -57,6 +57,15 @@ class Demodulator:
         I_lp = sig.lfilter(self.low_pass_filter, 1, I_base)
         Q_lp = sig.lfilter(self.low_pass_filter, 1, Q_base)
 
+        
+        RRC_delay = 3*self.symbol_period
+        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
+
+        baseband_signal_lp = I_lp + 1j*Q_lp
+        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
+
+        #Scale the signal to original constellation
+
         match self.order:
             case 1:
                 scaler = 2
@@ -64,16 +73,8 @@ class Demodulator:
                 scaler = 1
             case _:
                 scaler = (2/3*(2**(self.order)-1))**0.5
-        I_lp *= scaler #Scale the signal to original constellation
-        Q_lp *= scaler
 
-        #Scale the signal to original constellation
-        
-        RRC_delay = 3*self.symbol_period
-        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
-
-        baseband_signal_lp = I_lp + 1j*Q_lp
-        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
+        RC_signal *= scaler
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
@@ -99,6 +100,12 @@ class Demodulator:
         return text
 
     def DesicionDemapper(self, I, Q):
+        '''
+            I - Demodulated I-Component, in Symbols Array form
+            Q - Demodulated Q-Component, in Symbols Array form
+            
+            Returns the Bitstream of the received signal
+        '''
         bitstring = [None]
 
         if self.order == 1:
