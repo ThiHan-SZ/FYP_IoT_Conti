@@ -54,25 +54,29 @@ class Demodulator:
     def demodulate(self, signal):
         I_base, Q_base = self.downconverter(signal)
 
-        scaler = 2/3*(2**(self.order/2)-1) if self.order > 2 else 2
-
-        I_base *= scaler
-        Q_base *= scaler
-
         I_lp = sig.lfilter(self.low_pass_filter, 1, I_base)
         Q_lp = sig.lfilter(self.low_pass_filter, 1, Q_base)
 
+        match self.order:
+            case 1:
+                scaler = 2
+            case 2:
+                scaler = 1
+            case _:
+                scaler = (2/3*(2**(self.order)-1))**0.5
+        I_lp *= scaler #Scale the signal to original constellation
+        Q_lp *= scaler
 
+        #Scale the signal to original constellation
+        
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
 
         baseband_signal_lp = I_lp + 1j*Q_lp
-        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2
+        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
-        
-        
         return RC_signal[:-(6*self.samples_per_symbol)]
     
     def demapping(self, demod_signal):
@@ -163,18 +167,17 @@ class Demodulator:
     
     def received_constellation(self, demod_signal):
         demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
-        self.ax['ConstPlot'].scatter(demod_signal_samples.real/(2/3*(2**(self.order/2)-1)), demod_signal_samples.imag/(2/3*(2**(self.order/2)-1)))
+        self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
         self.ax['ConstPlot'].set_title("Received Constellation")
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
         self.ax['ConstPlot'].grid(True)
-        '''
         scaler = ((2**(self.order/2))-1) if self.order != 1 else 2
         x_ticks = np.arange(-scaler, scaler+1, 2)
         y_ticks = np.arange(-scaler, scaler+1, 2)
         self.ax['ConstPlot'].set_xticks(x_ticks)
         self.ax['ConstPlot'].set_yticks(y_ticks)
-        '''
+        
 
     def demod_and_plot(self, signal):
         demod_signal = self.demodulate(signal)
@@ -233,7 +236,7 @@ def main():
     file = input("Enter the file name/path: ")
     # Read the modulated signal
     fs, modulated = wav.read(file)
-    modulated *= 2 #remove the halving of the signal in the modulator
+    modulated *= 2
 
     demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
     demodulated_signal = demodulator.demodulate(modulated)

@@ -245,7 +245,7 @@ class Modulator:
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
         
-        Shaped_Pulse = sig.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function
+        Shaped_Pulse = sig.convolve(Dirac_Comb,rrc) #Pulse shaped signal, convolving SRRC over the Dirac Comb function12
         t_Shaped_Pulse = np.linspace(0,len(Shaped_Pulse)/self.sampling_rate,len(Shaped_Pulse),endpoint=False)
         
         ###Upscaling the signal to the carrier frequency###
