@@ -66,14 +66,11 @@ class Demodulator:
 
         #Scale the signal to original constellation
 
-        match self.order:
-            case 1:
-                scaler = 2
-            case 2:
-                scaler = 1
-            case _:
-                scaler = (2/3*(2**(self.order)-1))**0.5
-
+        if self.order <= 2:
+            scaler = 1
+        else:
+            scaler = (2/3*(2**(self.order)-1))**0.5
+        
         RC_signal *= scaler
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
@@ -179,7 +176,7 @@ class Demodulator:
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
         self.ax['ConstPlot'].grid(True)
-        scaler = ((2**(self.order/2))-1) if self.order != 1 else 2
+        scaler = ((2**(self.order/2))-1) if self.order > 2 else 1
         x_ticks = np.arange(-scaler, scaler+1, 2)
         y_ticks = np.arange(-scaler, scaler+1, 2)
         self.ax['ConstPlot'].set_xticks(x_ticks)
