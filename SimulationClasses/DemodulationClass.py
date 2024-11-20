@@ -3,6 +3,10 @@ import scipy.signal as sig
 import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 import commpy
+<<<<<<< Updated upstream
+=======
+import pickle
+>>>>>>> Stashed changes
 from ChannelClass import SimpleGWNChannel_dB
 
 
@@ -31,7 +35,11 @@ class Demodulator:
 
         #Demodulation Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
+<<<<<<< Updated upstream
         self.low_pass_filter_cutoff = 5*self.Nyquist_Bandwidth
+=======
+        self.low_pass_filter_cutoff = 1.5*self.Nyquist_Bandwidth
+>>>>>>> Stashed changes
         self.low_pass_filter_order = 101
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
@@ -53,18 +61,91 @@ class Demodulator:
         I_lp = sig.lfilter(self.low_pass_filter, 1, I_base)
         Q_lp = sig.lfilter(self.low_pass_filter, 1, Q_base)
 
+<<<<<<< Updated upstream
 
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
 
         baseband_signal = I_lp + 1j*Q_lp
         RC_signal = sig.convolve(baseband_signal, rrc) / np.sum(rrc**2) * 2
+=======
+        match self.order:
+            case 1:
+                scaler = 2
+            case 2:
+                scaler = 1
+            case _:
+                scaler = (2/3*(2**(self.order)-1))**0.5
+        I_lp *= scaler #Scale the signal to original constellation
+        Q_lp *= scaler
+
+        #Scale the signal to original constellation
+        
+        RRC_delay = 3*self.symbol_period
+        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
+
+        baseband_signal_lp = I_lp + 1j*Q_lp
+        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
+>>>>>>> Stashed changes
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
         RC_signal *= 2*((2**(self.order/2))-1)
         return RC_signal[:-(6*self.samples_per_symbol)]
     
+<<<<<<< Updated upstream
+=======
+    def demapping(self, demod_signal):
+        I = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].real
+        Q = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
+
+        bit_array = self.DesicionDemapper(I, Q)
+
+        byte_chunks = [bit_array[i:i+8] for i in range(0, len(bit_array), 8)]
+
+        byte_values = [int(''.join(map(str, chunk)), 2) for chunk in byte_chunks]
+
+        byte_array = bytes(byte_values)
+
+        try:
+            text = byte_array.decode('utf-8')
+        except:
+            text = f"Decode Error Received : {''.join(map(str, bit_array))}"
+
+        return text
+
+    def DesicionDemapper(self, I, Q):
+        bitstring = [None]
+
+        if self.order == 1:
+            bitstring = np.where(I > 0, 1, 0)
+        elif self.order == 2:
+            assert len(I) == len(Q), "I and Q must be of the same length"
+
+            I_bits = np.where(I > 0, 1, 0)
+            Q_bits = np.where(Q > 0, 1, 0)
+
+            bitstring = np.zeros(len(I)*2, dtype=int)
+            bitstring[0::2] = I_bits
+            bitstring[1::2] = Q_bits 
+
+        else:
+            with open(rf'QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
+                QAM_const = pickle.load(f)
+            
+            QAM_const_coord = [k for k in QAM_const.keys()]
+
+            QAM_tree = spysp.KDTree(QAM_const_coord)
+
+            coord = [QAM_const_coord[QAM_tree.query(i)[1]] for i in list(zip(I,Q))]
+
+            bitstring = [list(QAM_const[tuple(i)]) for i in coord]
+
+            bitstring = np.array(bitstring).flatten()
+
+        return bitstring
+    
+>>>>>>> Stashed changes
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -108,6 +189,15 @@ class Demodulator:
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
         self.ax['ConstPlot'].grid(True)
+<<<<<<< Updated upstream
+=======
+        scaler = ((2**(self.order/2))-1) if self.order != 1 else 2
+        x_ticks = np.arange(-scaler, scaler+1, 2)
+        y_ticks = np.arange(-scaler, scaler+1, 2)
+        self.ax['ConstPlot'].set_xticks(x_ticks)
+        self.ax['ConstPlot'].set_yticks(y_ticks)
+        
+>>>>>>> Stashed changes
 
     def demod_and_plot(self, signal):
         demod_signal = self.demodulate(signal)
@@ -148,19 +238,51 @@ def main():
     plot_IQ = input("Plot I and Q components? (Y/N): ").upper() == 'Y'
     plot_constellation = input("Plot Constellation? (Y/N): ").upper() == 'Y'
 
+<<<<<<< Updated upstream
     noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
    
 
     file = input("Enter the file name/path: ")
     # Read the modulated signal
     fs, modulated = wav.read(file)
+=======
+    noise_lower_bound, noise_upper_bound = 0, 0
+    while True:
+        try:
+            noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
+            if noise_lower_bound > noise_upper_bound:
+                print("Invalid SNR range. Please re-enter.")
+            else:
+                break
+        except KeyboardInterrupt:
+            exit()
+        except:
+            print("Invalid SNR range. Please re-enter.")
+         
+   
+    file = input("Enter the file name/path: ")
+    # Read the modulated signal
+    fs, modulated = wav.read(file)
+    modulated *= 2
+>>>>>>> Stashed changes
 
-    for i in range(noise_lower_bound,noise_upper_bound+1):
+    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
+    demodulated_signal = demodulator.demodulate(modulated)
+    text = demodulator.demapping(demodulated_signal)
+    demodulator.demod_and_plot(modulated)
+    demodulator.fig.suptitle("Received Signal")
+    print(f'Received Message : {text}')
+
+    '''for i in range(noise_lower_bound,noise_upper_bound+1):
         noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
         demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
         demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
         demodulator.demod_and_plot(noisymodulatedsignal)
         demodulator.fig.suptitle(f"SNR = {i} dB")
+<<<<<<< Updated upstream
+=======
+        print(f'Received Message : {text}')'''
+>>>>>>> Stashed changes
 
     '''noisymodulatedsignal = SimpleGWNChannel_dB(-5).add_noise(modulated)
 
