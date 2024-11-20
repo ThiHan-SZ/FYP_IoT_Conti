@@ -259,7 +259,7 @@ def main():
         print(f'Received Message : {text}')
     '''
     
-    '''SNR = int(input("Enter the SNR in dB: ")) 
+    SNR = int(input("Enter the SNR in dB: ")) 
     noisymodulatedsignal = SimpleGWNChannel_dB(SNR).add_noise(modulated)
     
     demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
@@ -268,7 +268,7 @@ def main():
     demodulator.demod_and_plot(noisymodulatedsignal)
     demodulator.fig.suptitle("Received Signal")
     print(f'Received Message : {text}')
-    '''
+    
     
     plt.show()
 
