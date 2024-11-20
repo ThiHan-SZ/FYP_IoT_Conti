@@ -1,4 +1,3 @@
-
 import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
@@ -8,6 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from testmodulator import SimpleModulator  # Import the Modulator class for signal modulation logic
+from matplotlib.figure import Figure
 
 # Dialog for Modulation
 class ModulationDialog(QDialog):
@@ -136,10 +136,8 @@ class ModulationDialog(QDialog):
         self.selected_mode = None  # Store the selected modulation mode
 
         # Placeholder for the canvas
-        self.canvas = FigureCanvas(None)  # Placeholder for the canvas
-        self.layout.addWidget(self.canvas)
-        self.central_widget.setLayout(self.layout)
-        self.setCentralWidget(self.central_widget) 
+        self.canvas = FigureCanvas(Figure())  # Create a blank canvas
+        main_layout.addWidget(self.canvas)   # Add it to the layout    
 
     def display_message(self, message):
         """Append a message to the output display."""
@@ -151,44 +149,42 @@ class ModulationDialog(QDialog):
         self.display_message(f"Selected Modulation Mode: {self.selected_mode}")
 
     def run_simulation(self):
-        """Generate and display IQ plots."""
-        print("run button clicked")
-        """Run the modulation simulation with the provided parameters."""
-        carrier_freq = self.carrier_freq_input.text()
-        bit_rate = self.bit_rate_input.text()
-        message = self.message_input.text()
-        save_signal = self.save_checkbox.isChecked()
-        plot_iq = self.plot_iq_checkbox.isChecked()
-
-        """error catching"""
-        if not carrier_freq or not bit_rate or not self.selected_mode or not message:
-            self.display_message("Please provide all inputs and select a modulation mode.")
-            return
-
+        #Display Digital & Modulated S
         try:
+            # Get inputs
+            carrier_freq = self.carrier_freq_input.text()
+            bit_rate = self.bit_rate_input.text()
+            message = self.message_input.text()
+
+            # Validate inputs
+            if not carrier_freq or not bit_rate or not self.selected_mode or not message:
+                self.display_message("Please provide all inputs and select a modulation mode.")
+                return
+
             carrier_freq = int(carrier_freq)
             bit_rate = int(bit_rate)
-        except ValueError:
-            self.display_message("Carrier frequency and bit rate must be integers.")
-            return
 
-        # Instantiate the Modulator and perform modulation
-        try:
-
-            # Instantiate Modulator
+            # Initialize the modulator and perform calculations
             modulator = SimpleModulator(self.selected_mode, bit_rate, carrier_freq)
             bitstr = modulator.msgchar2bit(message)
             t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
 
-            # Instantiate the modulator and generate the graph
+            '''
+            # Generate the figure
             fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
 
-            # Display the figure on the canvas
-            self.canvas.figure = fig
-            self.canvas.draw()
+            # Update the canvas
+            self.canvas.figure = fig  # Replace the current figure with the new one
+            self.canvas.draw()        # Refresh the canvas
 
-        except ValueError:
-            self.carrier_label.setText("Invalid carrier frequency or message!")
+            self.display_message("Simulation completed successfully.")'''
+
+        except ValueError as e:
+            self.display_message(f"Error: {str(e)}")
+        except Exception as e:
+            self.display_message(f"An unexpected error occurred: {str(e)}")
+
+        self.display_message("Simulation completed successfully.")
 
 
 # Main Application Window
@@ -239,7 +235,7 @@ class MainWindow(QMainWindow):
 
     def open_modulation_dialog(self):
         """Open the modulation dialog."""
-        if not self.dialog:  # Ensure only one dialog instance
+        if self.dialog is None:  # Ensure only one dialog instance
             self.dialog = ModulationDialog()
             self.dialog.finished.connect(self.on_dialog_closed)
             self.dialog.show()
@@ -249,8 +245,8 @@ class MainWindow(QMainWindow):
         self.dialog = None  # Reset the dialog reference
 
 # Application Entry Point
-if __name__ == '__main__':
-    app = QApplication(sys.argv)  # Create the application instance
-    main_win = MainWindow()  # Create the main window
-    main_win.show()  # Show the main window
-    sys.exit(app.exec_())  # Run the event loop
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
