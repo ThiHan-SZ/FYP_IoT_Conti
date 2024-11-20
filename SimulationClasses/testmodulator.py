@@ -44,6 +44,7 @@ class SimpleModulator:
         return digital_signal, x_axis_digital
     
     def modulate(self, bitstr):
+        print("Calling Modulate")
         if self.modulation_mode == 'BPSK':
             return self.bpsk_modulation(bitstr)
         elif self.modulation_mode == 'QPSK':
@@ -52,11 +53,9 @@ class SimpleModulator:
             return self.qam_modulation(bitstr)
         
     def bpsk_modulation(self, bitstr):
-        
+        print("BPSK Modulation running")
         I = np.array([2*int(bit)-1 for bit in bitstr[:-2]])
         Q = np.zeros_like(I)
-
-        self.IQenevlope_plot_choice = input("Do you want to plot I and Q? (Y/N): ").upper()
 
         return self.modulator_calculations(I, Q, bitstr[:-2])
 

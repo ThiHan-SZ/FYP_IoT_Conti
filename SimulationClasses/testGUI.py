@@ -169,7 +169,7 @@ class ModulationDialog(QDialog):
             bitstr = modulator.msgchar2bit(message)
             t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
 
-            '''
+            
             # Generate the figure
             fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
 
@@ -177,7 +177,7 @@ class ModulationDialog(QDialog):
             self.canvas.figure = fig  # Replace the current figure with the new one
             self.canvas.draw()        # Refresh the canvas
 
-            self.display_message("Simulation completed successfully.")'''
+            self.display_message("Simulation completed successfully.")
 
         except ValueError as e:
             self.display_message(f"Error: {str(e)}")
