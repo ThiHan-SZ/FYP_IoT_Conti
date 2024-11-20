@@ -1,4 +1,3 @@
-# PyQt5_GUI.py
 
 import sys
 from PyQt5.QtWidgets import (
@@ -7,15 +6,16 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
-from ModulationClass import Modulator  # Import the Modulator class
+from ModulationClass import Modulator  # Import the Modulator class for signal modulation logic
 
+# Dialog for Modulation
 class ModulationDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Modulation")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle("Modulation")  # Set the dialog title
+        self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
 
-        # Dark theme styling
+        # Apply dark theme styling for the dialog
         self.setStyleSheet("""
             QDialog { background-color: #2e2e2e; color: #ffffff; }
             QLabel, QLineEdit, QPushButton, QTextEdit { color: #ffffff; }
@@ -30,15 +30,15 @@ class ModulationDialog(QDialog):
             QCheckBox { color: #ffffff; }
         """)
 
-        font = QFont("SF Pro", 10)
+        font = QFont("SF Pro", 10)  # Default font for the GUI elements
 
-        # Main layout
+        # Main layout of the dialog
         main_layout = QVBoxLayout()
 
-        # Carrier Frequency Input
+        # Input for Carrier Frequency
         carrier_layout = QHBoxLayout()
-        carrier_label = QLabel("Carrier Frequency:", font=font)
-        self.carrier_freq_input = QLineEdit(self)
+        carrier_label = QLabel("Carrier Frequency:", font=font)  # Label for the input
+        self.carrier_freq_input = QLineEdit(self)  # Input field for carrier frequency
         self.carrier_freq_input.setPlaceholderText("Enter carrier frequency (Hz)")
         self.carrier_freq_input.setFont(font)
         self.carrier_freq_input.setFixedWidth(400)
@@ -47,10 +47,10 @@ class ModulationDialog(QDialog):
         carrier_layout.addStretch()
         main_layout.addLayout(carrier_layout)
 
-        # Bit Rate Input
+        # Input for Bit Rate
         bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
+        bitrate_label = QLabel("Bit Rate:", font=font)  # Label for bit rate input
+        self.bit_rate_input = QLineEdit(self)  # Input field for bit rate
         self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
         self.bit_rate_input.setFont(font)
         self.bit_rate_input.setFixedWidth(400)
@@ -61,17 +61,17 @@ class ModulationDialog(QDialog):
 
         # Modulation Mode Buttons
         modulation_layout = QVBoxLayout()
-        modulation_mode_label = QLabel("Modulation Mode:", font=QFont("SF Pro", 10))
+        modulation_mode_label = QLabel("Modulation Mode:", font=QFont("SF Pro", 10))  # Section label
         modulation_layout.addWidget(modulation_mode_label, alignment=Qt.AlignLeft)
 
-        # BPSK and QPSK Buttons
+        # Buttons for BPSK and QPSK Modulation Modes
         bpsk_qpsk_layout = QHBoxLayout()
-        self.bpsk_button = QPushButton("BPSK", self)
+        self.bpsk_button = QPushButton("BPSK", self)  # Button for BPSK
         self.bpsk_button.setFont(font)
         self.bpsk_button.setFixedSize(150, 50)
-        self.bpsk_button.clicked.connect(lambda: self.select_modulation_mode("BPSK"))
+        self.bpsk_button.clicked.connect(lambda: self.select_modulation_mode("BPSK"))  # On-click handler
 
-        self.qpsk_button = QPushButton("QPSK", self)
+        self.qpsk_button = QPushButton("QPSK", self)  # Button for QPSK
         self.qpsk_button.setFont(font)
         self.qpsk_button.setFixedSize(150, 50)
         self.qpsk_button.clicked.connect(lambda: self.select_modulation_mode("QPSK"))
@@ -81,7 +81,7 @@ class ModulationDialog(QDialog):
         bpsk_qpsk_layout.addStretch()
         modulation_layout.addLayout(bpsk_qpsk_layout)
 
-        # QAM Buttons
+        # Buttons for QAM Modes
         qam_layout = QHBoxLayout()
         self.qam_buttons = {
             "QAM16": QPushButton("QAM16"),
@@ -91,6 +91,7 @@ class ModulationDialog(QDialog):
             "QAM4096": QPushButton("QAM4096")
         }
 
+        # Add QAM buttons dynamically and connect their signals
         for mode, button in self.qam_buttons.items():
             button.setFont(font)
             button.setFixedSize(150, 50)
@@ -106,7 +107,7 @@ class ModulationDialog(QDialog):
         self.message_input.setFont(font)
         main_layout.addWidget(self.message_input)
 
-        # Additional Options (Checkboxes)
+        # Checkboxes for Additional Options
         self.save_checkbox = QCheckBox("Save Modulated Signal", self)
         self.save_checkbox.setFont(font)
         main_layout.addWidget(self.save_checkbox)
@@ -115,23 +116,23 @@ class ModulationDialog(QDialog):
         self.plot_iq_checkbox.setFont(font)
         main_layout.addWidget(self.plot_iq_checkbox)
 
-        # Run Simulation Button
+        # Button to Run the Simulation
         self.run_button = QPushButton("Run Simulation", self)
         self.run_button.setFont(font)
         self.run_button.setFixedSize(200, 50)
-        self.run_button.clicked.connect(self.run_simulation)
+        self.run_button.clicked.connect(self.run_simulation)  # Connect button click to the run_simulation method
         main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
 
-        # Output Display
+        # Output Display for Simulation Results
         self.output_display = QTextEdit(self)
         self.output_display.setFont(font)
         self.output_display.setReadOnly(True)
         self.output_display.setFixedHeight(200)
         main_layout.addWidget(self.output_display)
 
-        # Set main layout
+        # Set the layout of the dialog
         self.setLayout(main_layout)
-        self.selected_mode = None
+        self.selected_mode = None  # Store the selected modulation mode
 
     def display_message(self, message):
         """Append a message to the output display."""
@@ -140,9 +141,11 @@ class ModulationDialog(QDialog):
     def select_modulation_mode(self, mode):
         """Set selected modulation mode and update the display."""
         self.selected_mode = mode
-        self.display_message(f"Selected Modulation Mode: {mode}")
+        self.display_message(f"Selected Modulation Mode: {self.selected_mode}")
 
     def run_simulation(self):
+        """Generate and display IQ plots."""
+        print("run button clicked")
         """Run the modulation simulation with the provided parameters."""
         carrier_freq = self.carrier_freq_input.text()
         bit_rate = self.bit_rate_input.text()
@@ -150,6 +153,7 @@ class ModulationDialog(QDialog):
         save_signal = self.save_checkbox.isChecked()
         plot_iq = self.plot_iq_checkbox.isChecked()
 
+        """error catching"""
         if not carrier_freq or not bit_rate or not self.selected_mode or not message:
             self.display_message("Please provide all inputs and select a modulation mode.")
             return
@@ -161,38 +165,37 @@ class ModulationDialog(QDialog):
             self.display_message("Carrier frequency and bit rate must be integers.")
             return
 
-        # Instantiate the Modulator and run modulation
+        # Instantiate the Modulator and perform modulation
         try:
+
+            # Instantiate Modulator
             modulator = Modulator(self.selected_mode, bit_rate, carrier_freq)
             bitstr = modulator.msgchar2bit(message)
-            digital_signal, _ = modulator.digitalsignal(bitstr)
-            t, modulated_signal = modulator.modulate(bitstr)
+            t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
+            
+            fig = modulator.plot_IQ_internal(
+                t_Shaped_Pulse, modulated_signal, 
+                modulated_signal.real, modulated_signal.imag,
+                modulated_signal.real, modulated_signal.imag,
+                modulated_signal, 3
+            )
 
-            # Display the digital signal
-            self.display_message(f"Digital Signal: {''.join(map(str, digital_signal))}")
+            # Display the figure on the canvas
+            self.canvas.figure = fig
+            self.canvas.draw()
 
-            if save_signal:
-                filename = "modulated_signal.wav"
-                modulator.save(filename, modulated_signal)
-                self.display_message(f"Modulated signal saved as {filename}")
+        except ValueError:
+            self.carrier_label.setText("Invalid carrier frequency or message!")
 
-            if plot_iq:
-                modulator.plot_IQ_internal(*modulator.modulator_calculations(
-                    *modulator.qpsk_modulation(bitstr)
-                ))
-                self.display_message("Plotting I and Q components.")
 
-            self.display_message("Modulation completed successfully.")
-        except Exception as e:
-            self.display_message(f"An error occurred during modulation: {e}")
-
+# Main Application Window
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Modulation Simulation")
-        self.setGeometry(0, 0, 1200, 800)
+        self.setWindowTitle("Wireless Comms SimTool")  
+        self.setGeometry(0, 0, 1200, 800)  # Set size 
 
-        # Apply dark theme
+        # Dark theme 
         self.setStyleSheet("""
             QMainWindow { background-color: #2e2e2e; color: #ffffff; }
             QPushButton { 
@@ -204,46 +207,47 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background-color: #5e5e5e; }
         """)
 
+        #setting fonts and layout
         font = QFont("SF Pro", 12, QFont.Bold)
         central_widget = QWidget()
         main_layout = QVBoxLayout()
 
-        # Modulation Simulation Button
-        self.simulation_button = QPushButton("Modulation Simulation", self)
-        self.simulation_button.setFont(font)
-        self.simulation_button.setFixedSize(300, 80)
-        self.simulation_button.clicked.connect(self.open_modulation_dialog)
+        # Modulation Button
+        self.mod_button = QPushButton("Modulator", self)
+        self.mod_button.setFont(font)
+        self.mod_button.setFixedSize(1000, 80)
+        self.mod_button.clicked.connect(self.open_modulation_dialog)
 
-        # Demodulation Simulation Button (Placeholder for future implementation)
-        self.future_button = QPushButton("Demodulation Simulation", self)
-        self.future_button.setFont(font)
-        self.future_button.setFixedSize(300, 80)
+        #  DeModulation Button
+        self.demod_button = QPushButton("Demodulator", self)
+        self.demod_button.setFont(font)
+        self.demod_button.setFixedSize(1000, 80)
 
-        # Align buttons
+        # Add buttons to the main layout
         main_layout.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.simulation_button)
+        main_layout.addWidget(self.mod_button)
         main_layout.addSpacing(20)
-        main_layout.addWidget(self.future_button)
+        main_layout.addWidget(self.demod_button)
 
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Initialize dialog as None
-        self.dialog = None
+        self.dialog = None  # Store the dialog instance
 
     def open_modulation_dialog(self):
-        # Check if dialog is already open
-        if not self.dialog:
+        """Open the modulation dialog."""
+        if not self.dialog:  # Ensure only one dialog instance
             self.dialog = ModulationDialog()
-            self.dialog.finished.connect(self.on_dialog_closed)  # Ensure cleanup on close
-        self.dialog.show()  # Use show instead of exec to prevent nested event loop
+            self.dialog.finished.connect(self.on_dialog_closed)
+            self.dialog.show()
 
     def on_dialog_closed(self):
-        # Reset dialog to None when it’s closed
-        self.dialog = None
+        """Handle dialog closure."""
+        self.dialog = None  # Reset the dialog reference
 
+# Application Entry Point
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    main_win = MainWindow()
-    main_win.show()
-    sys.exit(app.exec_())
+    app = QApplication(sys.argv)  # Create the application instance
+    main_win = MainWindow()  # Create the main window
+    main_win.show()  # Show the main window
+    sys.exit(app.exec_())  # Run the event loop
