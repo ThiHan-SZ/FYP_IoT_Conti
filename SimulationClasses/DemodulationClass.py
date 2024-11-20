@@ -5,7 +5,7 @@ import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 import commpy
 import pickle
-from ChannelClass import SimpleGWNChannel_dB
+from ChannelClass import SimpleGWNChannel_dB, SimpleDelayChannel
 
 
 class Demodulator:
@@ -192,7 +192,7 @@ class Demodulator:
             self.plot(demod_signal)
         if self.plot_constellation:
             self.received_constellation(demod_signal)
-
+    
     ###### Deprecated Functions ######
     '''def received_constellation(self, demod_signal):
         self.samples_per_symbol = int(self.symbol_period*self.sampling_rate)
@@ -231,6 +231,13 @@ def main():
     fs, modulated = wav.read(file)
     modulated *= 2
 
+    '''demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
+    demodulated_signal = demodulator.demodulate(modulated)
+    text = demodulator.demapping(demodulated_signal)
+    demodulator.demod_and_plot(modulated)
+    demodulator.fig.suptitle("Received Signal")
+    print(f'Received Message : {text}')'''
+
     '''
     noise_lower_bound, noise_upper_bound = 0, 0
     while True:
@@ -245,15 +252,6 @@ def main():
         except:
             print("Invalid SNR range. Please re-enter.")
 
-    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
-    demodulated_signal = demodulator.demodulate(modulated)
-    text = demodulator.demapping(demodulated_signal)
-    demodulator.demod_and_plot(modulated)
-    demodulator.fig.suptitle("Received Signal")
-    print(f'Received Message : {text}')
-    '''
-
-    '''
     for i in range(noise_lower_bound,noise_upper_bound+1):
         noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
         demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
@@ -263,18 +261,18 @@ def main():
         demodulator.fig.suptitle(f"SNR = {i} dB")
         print(f'Received Message : {text}')
     '''
-
-    '''
-    SNR = int(input("Enter the SNR in dB: ")) 
+    
+    '''SNR = int(input("Enter the SNR in dB: ")) 
     noisymodulatedsignal = SimpleGWNChannel_dB(SNR).add_noise(modulated)
-
-    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20)
+    
+    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
     demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
     text = demodulator.demapping(demodulated_signal)
-    demodulator.demod_and_plot(modulated)
+    demodulator.demod_and_plot(noisymodulatedsignal)
     demodulator.fig.suptitle("Received Signal")
     print(f'Received Message : {text}')
     '''
+    
     plt.show()
 
 if __name__ == "__main__":
