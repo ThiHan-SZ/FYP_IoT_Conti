@@ -1,5 +1,6 @@
 
 import sys
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox
@@ -134,6 +135,12 @@ class ModulationDialog(QDialog):
         self.setLayout(main_layout)
         self.selected_mode = None  # Store the selected modulation mode
 
+        # Placeholder for the canvas
+        self.canvas = FigureCanvas(None)  # Placeholder for the canvas
+        self.layout.addWidget(self.canvas)
+        self.central_widget.setLayout(self.layout)
+        self.setCentralWidget(self.central_widget) 
+
     def display_message(self, message):
         """Append a message to the output display."""
         self.output_display.append(message)
@@ -174,7 +181,7 @@ class ModulationDialog(QDialog):
             t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
 
             # Instantiate the modulator and generate the graph
-            fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal, self.order , symbol_order, modulation_mode)
+            fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
 
             # Display the figure on the canvas
             self.canvas.figure = fig

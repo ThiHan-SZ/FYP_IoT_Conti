@@ -84,36 +84,31 @@ class SimpleModulator:
         Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
         
         return t_Shaped_Pulse, I_FC + Q_FC
-    '''
-    def plot_digital_signal(self,bitstr):
-        digital_signal, x_axis_digital = self.digitalsignal(bitstr)
-        self.ax[0].step(x_axis_digital, digital_signal, where="post")
-        self.ax[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
-        self.ax[0].set_ylabel("Digital Signal")
 
-    def plot_modulated_signal(self, t, modulated_signal):
-        self.ax[1].plot(t, modulated_signal)
-        self.ax[1].set_title(f'Modulated Signal: {self.modulation_mode}')
-        self.ax[1].set_ylabel("Amplitude")
-        self.ax[1].set_xlabel("Time (s)")
-    '''
-    def digital_modulated_plot(self, bitstr, t, modulated_signal, modulation_mode):
+    def digital_modulated_plot(self, bitstr, t_m_s, modulated_signal):
+        '''
+            Generate the MATPLOTLIB fig for the digital signal and the modulated signal
 
+            Parameters:
+            bitstr: str - The bitstring to be modulated
+            t_m_s: np.array - Time array for the modulated signal
+            modulated_signal: np.array - The modulated signal
+        '''
         fig = Figure()
         ax1 = fig.add_subplot(211)  # Top subplot for digital signal
         ax2 = fig.add_subplot(212)  # Bottom subplot for modulated signal
 
         # Digital Signal
-        
+        digital_signal, x_axis_digital = self.digitalsignal(bitstr)
 
         ax1.step(x_axis_digital, digital_signal, where="post")
-        ax1.vlines(x_axis_digital[::self.symbol_order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
+        ax1.vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
         ax1.set_ylabel("Digital Signal")
         ax1.set_title("Digital Signal")
 
         # Modulated Signal
-        ax2.plot(t, modulated_signal)
-        ax2.set_title(f"Modulated Signal: {modulation_mode}")
+        ax2.plot(t_m_s, modulated_signal)
+        ax2.set_title(f"Modulated Signal: {self.modulation_mode}")
         ax2.set_ylabel("Amplitude")
         ax2.set_xlabel("Time (s)")
 
@@ -129,50 +124,5 @@ class SimpleModulator:
         wav.write(filename, self.sampling_rate, modulated_signal)
         print(f"Modulated signal saved as {filename}")
     
-
-def main():
-    message = input("Enter the message: ")
-
-    '''
-    with open(r'TestcaseFiles\AsciiTable.txt', 'r', encoding='utf-8') as f:
-        message = f.read()
-    '''
-
-    while True:
-        try:
-            carrier_freq = int(input("Enter the carrier frequency: "))
-            break
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print("Invalid carrier frequency. Please re-enter.")
-
-    while True:
-        try:
-            bit_rate = int(input("Enter the bit-rate: "))
-            break
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print("Invalid bit-rate. Please re-enter.")
-    while True:
-        mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
-        if mod_mode_select in Modulator.modulation_modes:
-            break
-        print("Invalid modulation mode. Please reselect.")
-
-    modulator = Modulator(mod_mode_select,bit_rate=bit_rate,carrier_freq=carrier_freq) 
-
-    from ChannelClass import SimpleGWNChannel_dB # Importing the Channel Class for adding noise to the signal only for demonstration purposes
-
-    if input("Do you want to save the modulated signal? (Y/N): ").upper() == 'Y':
-        filename = input("Enter the filename to save the modulated signal: ")
-        t,signal = modulator.plot_and_save(message, filename)
-    else:
-        t,signal = modulator.plot_full(message)
-        
-    plt.show()
-
-
 if __name__ == "__main__":
-    main()
+    pass
