@@ -25,7 +25,6 @@ from gnuradio import eng_notation
 import sip
 
 
-
 class Test1(gr.top_block, Qt.QWidget):
 
     def __init__(self):
@@ -142,8 +141,6 @@ class Test1(gr.top_block, Qt.QWidget):
         self.qtgui_freq_sink_x_0.enable_control_panel(False)
         self.qtgui_freq_sink_x_0.set_fft_window_normalized(False)
 
-
-
         labels = ['', '', '', '', '',
             '', '', '', '', '']
         widths = [1, 1, 1, 1, 1,
@@ -177,7 +174,6 @@ class Test1(gr.top_block, Qt.QWidget):
         self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(0.4)
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_char*1, 'C:\\Users\\Destiny\\Documents\\GitHub\\FYP_IoT_Conti\\TestcaseFiles\\AsciiTable.txt', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
-
 
         ##################################################
         # Connections
