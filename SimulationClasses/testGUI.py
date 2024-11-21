@@ -187,14 +187,8 @@ class ModulationDialog(QDialog):
 
             if self.plot_iq_checkbox.isChecked():
             # Generate the IQ plot
-                I, Q, bitgroups = modulator.bpsk_modulation(bitstr)
-                t_Shaped_Pulse, I_FC , Q_FC, Dirac_Comb, RRC_delay, I_processed, Q_processed, Shaped_Pulse  = modulator.modulator_calculations(I, Q, bitgroups)
-                
-                iq_fig = modulator.plot_IQ_internal(
-                    self, t_Shaped_Pulse, Shaped_Pulse, 
-                    I_FC, Q_FC, I_processed, Q_processed, 
-                    Dirac_Comb, RRC_delay# Example RRC delay
-                )
+                t_Shaped_Pulse, iq_fig = modulator.bpsk_modulation(bitstr)
+            
             
             iq_dialog = GraphDialog(iq_fig, self)  # Display IQ plot in a dialog
             iq_dialog.exec_()

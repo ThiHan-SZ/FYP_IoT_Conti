@@ -68,6 +68,7 @@ class SimpleModulator:
         shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
         Shaped_Pulse = np.zeros(shaped_pulse_length, dtype=complex)
         Dirac_Comb = np.zeros(shaped_pulse_length, dtype=complex)
+        t_Dirac_Comb = np.linspace(0,len(Dirac_Comb)/self.sampling_rate,len(Dirac_Comb),endpoint=False)
 
         for idx, (i_val, q_val) in enumerate(zip(I, Q)):
             start_idx = idx * samples_per_symbol
@@ -82,7 +83,9 @@ class SimpleModulator:
         I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
         Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
         
-        return t_Shaped_Pulse, I_FC + Q_FC
+        iq_fig = self.plot_IQ_internal(t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay)
+
+        return t_Shaped_Pulse,iq_fig 
 
     def digital_modulated_plot(self, bitstr, t_m_s, modulated_signal):
         digimod_fig = Figure()
@@ -116,6 +119,7 @@ class SimpleModulator:
         print(f"Modulated signal saved as {filename}")
 
     '''def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay):
+
         fig, ax = plt.subplots(3, 2, constrained_layout=True)
         ax[0,0].plot(t_Shaped_Pulse / self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
         
@@ -196,94 +200,87 @@ class SimpleModulator:
         ax[2,1].plot(f_spec_x_axis, Q_FC_spectrum)
         ax[2,1].set_title("Q Spectrum")
         ax[2,1].set_ylabel("Magnitude")
-        ax[2,1].set_xlabel("Frequency (Hz)")
-    '''
-    
+        ax[2,1].set_xlabel("Frequency (Hz)")'''
+
     def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay):
-        # Create a Matplotlib Figure
         iq_fig = Figure()
-        ax = iq_fig.subplots(3, 2, constrained_layout=True)  # 3 rows, 2 columns
+        axs = iq_fig.subplots(3, 2)
 
-        # Real Part
-        ax[0, 0].plot(t_Shaped_Pulse / self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
-        _, stemlines_I_Dirac, _ = ax[0, 0].stem(
-            (RRC_delay + t_Shaped_Pulse) / self.symbol_period,
-            Dirac_Comb.real,
-            linefmt='r-',
-            markerfmt='',
-            basefmt='r-'
+        # Real part plot
+        axs[0, 0].plot(t_Shaped_Pulse / self.symbol_period, Shaped_Pulse.real, label='$u(t)$')
+
+        # Stem plot for Real part
+        x_values = (RRC_delay + t_Shaped_Pulse) / self.symbol_period
+        y_values = Dirac_Comb.real
+        _, stemlines_I_Dirac, baseline_I_Dirac = axs[0, 0].stem(
+            x_values, y_values, linefmt='r-', markerfmt='', basefmt='r-'
         )
-        ax[0, 0].plot(
-            (RRC_delay + t_Shaped_Pulse[np.nonzero(Dirac_Comb.real)]) / self.symbol_period,
-            Dirac_Comb.real[np.nonzero(Dirac_Comb.real)],
-            'ro',
-            alpha=0.75
+        baseline_I_Dirac.set_visible(False)
+        plt.setp(stemlines_I_Dirac, 'alpha', 0.5)
+
+        # Highlight non-zero values
+        non_zero_indices_real = np.nonzero(y_values)[0]
+        non_zero_times_real = x_values[non_zero_indices_real]
+        non_zero_values_real = y_values[non_zero_indices_real]
+        axs[0, 0].plot(non_zero_times_real, non_zero_values_real, 'ro', alpha=0.75)
+        axs[0, 0].set_title("Real Part")
+
+        # Imaginary part plot
+        axs[0, 1].plot(t_Shaped_Pulse / self.symbol_period, Shaped_Pulse.imag)
+
+        # Stem plot for Imaginary part
+        y_values_imag = Dirac_Comb.imag
+        _, stemlines_Q_Dirac, baseline_Q_Dirac = axs[0, 1].stem(
+            x_values, y_values_imag, linefmt='r-', markerfmt='', basefmt='r-'
         )
-        ax[0, 0].set_title("Real Part")
+        baseline_Q_Dirac.set_visible(False)
+        plt.setp(stemlines_Q_Dirac, 'alpha', 0.5)
 
-        # Imaginary Part
-        ax[0, 1].plot(t_Shaped_Pulse / self.symbol_period, Shaped_Pulse.imag)
-        _, stemlines_Q_Dirac, _ = ax[0, 1].stem(
-            (RRC_delay + t_Shaped_Pulse) / self.symbol_period,
-            Dirac_Comb.imag,
-            linefmt='r-',
-            markerfmt='',
-            basefmt='r-'
-        )
-        ax[0, 1].plot(
-            (RRC_delay + t_Shaped_Pulse[np.nonzero(Dirac_Comb.imag)]) / self.symbol_period,
-            Dirac_Comb.imag[np.nonzero(Dirac_Comb.imag)],
-            'ro',
-            alpha=0.75
-        )
-        ax[0, 1].set_title("Imaginary Part")
+        # Highlight non-zero values
+        non_zero_indices_imag = np.nonzero(y_values_imag)[0]
+        non_zero_times_imag = x_values[non_zero_indices_imag]
+        non_zero_values_imag = y_values_imag[non_zero_indices_imag]
+        axs[0, 1].plot(non_zero_times_imag, non_zero_values_imag, 'ro', alpha=0.75)
+        axs[0, 1].set_title("Imaginary Part")
 
-        # I Signal
-        ax[1, 0].plot(t_Shaped_Pulse, I_FC, label="I_FC")
-        ax[1, 0].plot(t_Shaped_Pulse, I_processed, label="I_processed")
-        ax[1, 0].set_title("I Signal")
-        ax[1, 0].set_ylabel("Amplitude")
-        ax[1, 0].set_xlabel("Sample Index (T/Ts)")
-        ax[1, 0].legend()
+        # I and Q signal plots
+        axs[1, 0].plot(t_Shaped_Pulse, I_FC, label='I_FC')
+        axs[1, 0].plot(t_Shaped_Pulse, I_processed, label='I_processed')
+        axs[1, 0].set_title("I Signal")
+        axs[1, 0].set_ylabel("Amplitude")
+        axs[1, 0].set_xlabel("Sample Index (T/Ts)")
 
-        # Q Signal
-        ax[1, 1].plot(t_Shaped_Pulse, Q_FC, label="Q_FC")
-        ax[1, 1].plot(t_Shaped_Pulse, Q_processed, label="Q_processed")
-        ax[1, 1].set_title("Q Signal")
-        ax[1, 1].set_ylabel("Amplitude")
-        ax[1, 1].set_xlabel("Sample Index (T/Ts)")
-        ax[1, 1].legend()
+        axs[1, 1].plot(t_Shaped_Pulse, Q_FC, label='Q_FC')
+        axs[1, 1].plot(t_Shaped_Pulse, Q_processed, label='Q_processed')
+        axs[1, 1].set_title("Q Signal")
+        axs[1, 1].set_ylabel("Amplitude")
+        axs[1, 1].set_xlabel("Sample Index (T/Ts)")
 
-        # Spectrum
-        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x[::], n=len(x))) / len(x))
+        # Spectrum calculation and plotting
+        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x, n=len(x))) / len(x))
         f_spec_x_axis = np.linspace(-self.sampling_rate / 2, self.sampling_rate / 2, len(Shaped_Pulse), endpoint=False)
         freq_range = self.carrier_freq * 2
         range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
-
         f_spec_x_axis = f_spec_x_axis[range_indices]
         I_spectrum = spectrum(I_processed)[range_indices]
         Q_spectrum = spectrum(Q_processed)[range_indices]
         I_FC_spectrum = spectrum(I_FC)[range_indices]
         Q_FC_spectrum = spectrum(Q_FC)[range_indices]
 
-        # I Spectrum
-        ax[2, 0].plot(f_spec_x_axis, I_spectrum, label="I_spectrum")
-        ax[2, 0].plot(f_spec_x_axis, I_FC_spectrum, label="I_FC_spectrum")
-        ax[2, 0].set_title("I Spectrum")
-        ax[2, 0].set_ylabel("Magnitude")
-        ax[2, 0].set_xlabel("Frequency (Hz)")
-        ax[2, 0].legend()
+        axs[2, 0].plot(f_spec_x_axis, I_spectrum, label='I_processed Spectrum')
+        axs[2, 0].plot(f_spec_x_axis, I_FC_spectrum, label='I_FC Spectrum')
+        axs[2, 0].set_title("I Spectrum")
+        axs[2, 0].set_ylabel("Magnitude")
+        axs[2, 0].set_xlabel("Frequency (Hz)")
 
-        # Q Spectrum
-        ax[2, 1].plot(f_spec_x_axis, Q_spectrum, label="Q_spectrum")
-        ax[2, 1].plot(f_spec_x_axis, Q_FC_spectrum, label="Q_FC_spectrum")
-        ax[2, 1].set_title("Q Spectrum")
-        ax[2, 1].set_ylabel("Magnitude")
-        ax[2, 1].set_xlabel("Frequency (Hz)")
-        ax[2, 1].legend()
+        axs[2, 1].plot(f_spec_x_axis, Q_spectrum, label='Q_processed Spectrum')
+        axs[2, 1].plot(f_spec_x_axis, Q_FC_spectrum, label='Q_FC Spectrum')
+        axs[2, 1].set_title("Q Spectrum")
+        axs[2, 1].set_ylabel("Magnitude")
+        axs[2, 1].set_xlabel("Frequency (Hz)")
 
+        iq_fig.tight_layout()
         return iq_fig
-
 
 if __name__ == "__main__":
     pass
