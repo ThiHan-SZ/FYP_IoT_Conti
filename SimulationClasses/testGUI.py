@@ -2,19 +2,33 @@ import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox
+    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from testmodulator import SimpleModulator  # Import the Modulator class for signal modulation logic
 from matplotlib.figure import Figure
 
+#Dialog for Graphs
+class GraphDialog(QDialog):
+    def __init__(self, figure, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Graph Viewer")
+        self.setGeometry(150, 150, 800, 600)
+
+        # Layout for the dialog
+        layout = QVBoxLayout()
+        # Matplotlib canvas
+        self.canvas = FigureCanvas(figure)
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
+
 # Dialog for Modulation
 class ModulationDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Modulation")  # Set the dialog title
-        self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
+        self.setGeometry(0, 0, 2000, 1600)  # Set the size of the dialog window
 
         # Apply dark theme styling for the dialog
         self.setStyleSheet("""
@@ -133,11 +147,7 @@ class ModulationDialog(QDialog):
 
         # Set the layout of the dialog
         self.setLayout(main_layout)
-        self.selected_mode = None  # Store the selected modulation mode
-
-        # Placeholder for the canvas
-        self.canvas = FigureCanvas(Figure())  # Create a blank canvas
-        main_layout.addWidget(self.canvas)   # Add it to the layout    
+        self.selected_mode = None  # Store the selected modulation mode 
 
     def display_message(self, message):
         """Append a message to the output display."""
@@ -168,16 +178,27 @@ class ModulationDialog(QDialog):
             modulator = SimpleModulator(self.selected_mode, bit_rate, carrier_freq)
             bitstr = modulator.msgchar2bit(message)
             t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
-
             
             # Generate the figure
-            fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
+            digimod_fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
 
-            # Update the canvas
-            self.canvas.figure = fig  # Replace the current figure with the new one
-            self.canvas.draw()        # Refresh the canvas
+            digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
+            digimod_dialog.exec_()
 
-            self.display_message("Simulation completed successfully.")
+            if self.plot_iq_checkbox.isChecked():
+            # Generate the IQ plot
+                I, Q, bitgroups = modulator.bpsk_modulation(bitstr)
+                t_Shaped_Pulse, I_FC , Q_FC, Dirac_Comb, RRC_delay, I_processed, Q_processed, Shaped_Pulse  = modulator.modulator_calculations(I, Q, bitgroups)
+                
+                iq_fig = modulator.plot_IQ_internal(
+                    self, t_Shaped_Pulse, Shaped_Pulse, 
+                    I_FC, Q_FC, I_processed, Q_processed, 
+                    Dirac_Comb, RRC_delay# Example RRC delay
+                )
+            
+            iq_dialog = GraphDialog(iq_fig, self)  # Display IQ plot in a dialog
+            iq_dialog.exec_()
+
 
         except ValueError as e:
             self.display_message(f"Error: {str(e)}")
@@ -185,7 +206,6 @@ class ModulationDialog(QDialog):
             self.display_message(f"An unexpected error occurred: {str(e)}")
 
         self.display_message("Simulation completed successfully.")
-
 
 # Main Application Window
 class MainWindow(QMainWindow):
