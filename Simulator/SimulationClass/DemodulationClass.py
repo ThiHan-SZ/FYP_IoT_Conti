@@ -5,24 +5,17 @@ import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 import commpy
 import pickle
-from ChannelClass import SimpleGWNChannel_dB, SimpleDelayChannel
 
 
 class Demodulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
     
-    def __init__(self, modulation_mode, bit_rate,carrier_freq, plot_IQ, plot_constellation) -> None:
-       
-        #Plot Parameters
-        self.plot_IQ = plot_IQ
-        self.plot_constellation = plot_constellation
-        self.fig = plt.figure(constrained_layout=True) if self.plot_IQ or self.plot_constellation else None
-        self.ax = self.plot_setup(self.fig) if self.plot_IQ or self.plot_constellation else None
-
+    def __init__(self, modulation_mode, bit_rate, carrier_freq) -> None:
         #Demodulation Parameters
         self.carrier_freq = carrier_freq
         self.modulation_mode = modulation_mode
         self.order = self.modulation_modes[modulation_mode]
+        self.demodulator_total_delay = None
 
         #Bit Rate Parameters
         self.baud_rate = bit_rate/self.order
@@ -38,8 +31,6 @@ class Demodulator:
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
-        self.demodulator_total_delay = None
-
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
         baseband_signal = signal * np.exp(-1j* 2 *np.pi * self.carrier_freq * t)
@@ -52,20 +43,36 @@ class Demodulator:
         return low_pass_filter
     
     def demodulate(self, signal):
-        I_base, Q_base = self.downconverter(signal)
+        """
+            Demodulates a signal to its baseband envelope.
 
+            This function performs the following steps:
+                1. Downconversion and low-pass filtering to extract in-phase (I) and quadrature (Q) components.
+                2. Matched filtering using a root-raised-cosine (RRC) filter for optimal signal recovery.
+                3. Energy normalization and scaling based on the modulation order.
+
+            Parameters:
+                signal (np.array): The input signal to be demodulated.
+
+            Returns:
+                np.array: The baseband envelope of the demodulated signal after processing, 
+                truncated to remove delays introduced during filtering.
+        """
+
+        ##### Downconversion & Lowpassing #####
+        I_base, Q_base = self.downconverter(signal)
         I_lp = sig.lfilter(self.low_pass_filter, 1, I_base)
         Q_lp = sig.lfilter(self.low_pass_filter, 1, Q_base)
 
-        
+        ##### Matched Filtering #####
         RRC_delay = 3*self.symbol_period
         _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
 
         baseband_signal_lp = I_lp + 1j*Q_lp
         RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
 
-        #Scale the signal to original constellation
-
+        
+        ##### Scaling #####
         if self.order <= 2:
             scaler = 1
         else:
@@ -78,10 +85,19 @@ class Demodulator:
         return RC_signal[:-(6*self.samples_per_symbol)]
     
     def demapping(self, demod_signal):
-        I = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].real
-        Q = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
+        """
+            Converts a demodulated signal into text and its corresponding bit array.
 
-        bit_array = self.DesicionDemapper(I, Q)
+            Parameters:
+                demod_signal (np.array): The demodulated signal to be processed.
+
+            Returns:
+                tuple: 
+                    - text (str): Decoded text from the demodulated signal. If decoding fails, 
+                    an error message is returned.
+                    - bit_array (np.array): The bit array extracted from the demodulated signal.
+        """
+        bit_array = self.DesicionDemapper(demod_signal)
 
         byte_chunks = [bit_array[i:i+8] for i in range(0, len(bit_array), 8)]
 
@@ -94,15 +110,27 @@ class Demodulator:
         except:
             text = f"Decode Error Received : {''.join(map(str, bit_array))}"
 
-        return text
+        return text, bit_array
 
-    def DesicionDemapper(self, I, Q):
-        '''
-            I - Demodulated I-Component, in Symbols Array form
-            Q - Demodulated Q-Component, in Symbols Array form
-            
-            Returns the Bitstream of the received signal
-        '''
+    def DesicionDemapper(self, demod_signal):
+        """
+            Maps the in-phase (I) and quadrature (Q) components of a signal to a bit array.
+
+            Parameters:
+                demod_signal (np.array): The input demodulated signal containing I and Q components.
+
+            Returns:
+                np.array: Bit array representing the demodulated signal.
+
+            Notes:
+                - For binary modulation (order=1), uses the polarity of the I component to determine bits.
+                - For QPSK (order=2), uses both I and Q components.
+                - For higher-order modulation, a precomputed lookup table (LUT) is used.
+        """
+
+        I = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].real
+        Q = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
+        
         bitstring = [None]
 
         if self.order == 1:
@@ -117,6 +145,7 @@ class Demodulator:
             bitstring[0::2] = I_bits
             bitstring[1::2] = Q_bits 
 
+        
         else:
             with open(rf'QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
                 QAM_const = pickle.load(f)
@@ -131,8 +160,10 @@ class Demodulator:
 
             bitstring = np.array(bitstring).flatten()
 
+        bitstring = [int(bit) for bit in bitstring]
+        
         return bitstring
-    
+'''   
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -189,88 +220,4 @@ class Demodulator:
             self.plot(demod_signal)
         if self.plot_constellation:
             self.received_constellation(demod_signal)
-    
-    ###### Deprecated Functions ######
-    '''def received_constellation(self, demod_signal):
-        self.samples_per_symbol = int(self.symbol_period*self.sampling_rate)
-        delay = self.demodulator_total_delay
-        t_axis = np.linspace(0, len(demod_signal)/self.sampling_rate, len(demod_signal), endpoint=False)
-        t_samples = t_axis[delay::self.samples_per_symbol]
-        demod_signal_samples = demod_signal[delay::self.samples_per_symbol]
-
-        plt.figure()
-        plt.scatter(demod_signal_samples.real, demod_signal_samples.imag)
-        plt.title("Received Constellation")
-        plt.xlabel("I")
-        plt.ylabel("Q")
-        plt.grid(True)'''
-
-def main():
-    while True:
-        try:
-            bit_rate = int(input("Enter the bit-rate: "))
-            break
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print("Invalid bit-rate. Please re-enter.")
-
-    while True:
-        mod_mode_select = input("Enter the modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
-        if mod_mode_select in Demodulator.modulation_modes:
-            break
-        print("Invalid modulation mode. Please reselect.")
-    plot_IQ = input("Plot I and Q components? (Y/N): ").upper() == 'Y'
-    plot_constellation = input("Plot Constellation? (Y/N): ").upper() == 'Y'
-
-    file = input("Enter the file name/path: ")
-    # Read the modulated signal
-    fs, modulated = wav.read(file)
-    modulated *= 2
-
-    '''demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
-    demodulated_signal = demodulator.demodulate(modulated)
-    text = demodulator.demapping(demodulated_signal)
-    demodulator.demod_and_plot(modulated)
-    demodulator.fig.suptitle("Received Signal")
-    print(f'Received Message : {text}')'''
-
-    '''
-    noise_lower_bound, noise_upper_bound = 0, 0
-    while True:
-        try:
-            noise_lower_bound, noise_upper_bound = (int(i) for i in input("Enter the SNR range (lower_bound, upper_bound): ").split(','))
-            if noise_lower_bound > noise_upper_bound:
-                print("Invalid SNR range. Please re-enter.")
-            else:
-                break
-        except KeyboardInterrupt:
-            exit()
-        except:
-            print("Invalid SNR range. Please re-enter.")
-
-    for i in range(noise_lower_bound,noise_upper_bound+1):
-        noisymodulatedsignal = SimpleGWNChannel_dB(i).add_noise(modulated)
-        demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
-        demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
-        text = demodulator.demapping(demodulated_signal)
-        demodulator.demod_and_plot(noisymodulatedsignal)
-        demodulator.fig.suptitle(f"SNR = {i} dB")
-        print(f'Received Message : {text}')
-    '''
-    
-    SNR = int(input("Enter the SNR in dB: ")) 
-    noisymodulatedsignal = SimpleGWNChannel_dB(SNR).add_noise(modulated)
-    
-    demodulator = Demodulator(mod_mode_select, bit_rate, fs/20, plot_IQ, plot_constellation)
-    demodulated_signal = demodulator.demodulate(noisymodulatedsignal)
-    text = demodulator.demapping(demodulated_signal)
-    demodulator.demod_and_plot(noisymodulatedsignal)
-    demodulator.fig.suptitle("Received Signal")
-    print(f'Received Message : {text}')
-    
-    
-    plt.show()
-
-if __name__ == "__main__":
-    main()
+'''
