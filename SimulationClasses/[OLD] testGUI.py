@@ -185,13 +185,12 @@ class ModulationDialog(QDialog):
             digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
             digimod_dialog.exec_()
 
-            if self.plot_iq_checkbox.isChecked():
+            #if self.plot_iq_checkbox.isChecked():
             # Generate the IQ plot
-                t_Shaped_Pulse, iq_fig = modulator.bpsk_modulation(bitstr)
+                #t_Shaped_Pulse, iq_fig = modulator.bpsk_modulation(bitstr)
             
-            
-            iq_dialog = GraphDialog(iq_fig, self)  # Display IQ plot in a dialog
-            iq_dialog.exec_()
+            #iq_dialog = GraphDialog(iq_fig, self)  # Display IQ plot in a dialog
+            #iq_dialog.exec_()
 
 
         except ValueError as e:

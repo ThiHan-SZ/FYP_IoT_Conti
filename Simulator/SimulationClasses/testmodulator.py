@@ -93,9 +93,9 @@ class SimpleModulator:
             t_m_s: np.array - Time array for the modulated signal
             modulated_signal: np.array - The modulated signal
         '''
-        fig = Figure()
-        ax1 = fig.add_subplot(211)  # Top subplot for digital signal
-        ax2 = fig.add_subplot(212)  # Bottom subplot for modulated signal
+        digimod_fig = Figure()
+        ax1 = digimod_fig.add_subplot(211)  # Top subplot for digital signal
+        ax2 = digimod_fig.add_subplot(212)  # Bottom subplot for modulated signal
 
         # Digital Signal
         digital_signal, x_axis_digital = self.digitalsignal(bitstr)
@@ -111,7 +111,7 @@ class SimpleModulator:
         ax2.set_ylabel("Amplitude")
         ax2.set_xlabel("Time (s)")
 
-        return fig
+        return digimod_fig
 
     def save(self, filename, modulated_signal):
         

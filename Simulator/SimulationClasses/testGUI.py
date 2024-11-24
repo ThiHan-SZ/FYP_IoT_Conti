@@ -9,6 +9,19 @@ from PyQt5.QtGui import QFont
 from testmodulator import SimpleModulator  # Import the Modulator class for signal modulation logic
 from matplotlib.figure import Figure
 
+class GraphDialog(QDialog):
+    def __init__(self, figure, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Graph Viewer")
+        self.setGeometry(150, 150, 2400, 1500)
+
+        # Layout for the dialog
+        layout = QVBoxLayout()
+        # Matplotlib canvas
+        self.canvas = FigureCanvas(figure)
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
+
 # Dialog for Modulation
 class ModulationDialog(QDialog):
     def __init__(self):
@@ -135,10 +148,6 @@ class ModulationDialog(QDialog):
         self.setLayout(main_layout)
         self.selected_mode = None  # Store the selected modulation mode
 
-        # Placeholder for the canvas
-        self.canvas = FigureCanvas(Figure())  # Create a blank canvas
-        main_layout.addWidget(self.canvas)   # Add it to the layout    
-
     def display_message(self, message):
         """Append a message to the output display."""
         self.output_display.append(message)
@@ -171,13 +180,10 @@ class ModulationDialog(QDialog):
 
             
             # Generate the figure
-            fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
+            digimod_fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
 
-            # Update the canvas
-            self.canvas.figure = fig  # Replace the current figure with the new one
-            self.canvas.draw()        # Refresh the canvas
-
-            self.display_message("Simulation completed successfully.")
+            digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
+            digimod_dialog.exec_()
 
         except ValueError as e:
             self.display_message(f"Error: {str(e)}")
