@@ -60,7 +60,7 @@ msg = input("Enter the bit string to be modulated: ")
 
 SNR = int(input("Enter the SNR limit in dB: "))
 
-SNR_test_range = np.linspace(0,SNR,SNR*100)
+SNR_test_range = np.linspace(0,SNR,np.abs(SNR*16))
 
 bitstr = SimMod.msgchar2bit(msg)
 int_bitstr = np.array([int(bit) for bit in bitstr])
