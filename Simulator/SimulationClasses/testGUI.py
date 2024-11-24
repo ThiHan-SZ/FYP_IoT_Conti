@@ -6,8 +6,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
-from testmodulator import SimpleModulator  # Import the Modulator class for signal modulation logic
+from testmodulator import Modulator  # Import the Modulator class for signal modulation logic
 from matplotlib.figure import Figure
+import traceback
 
 class GraphDialog(QDialog):
     def __init__(self, figure, parent=None):
@@ -28,6 +29,10 @@ class ModulationDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Modulation")  # Set the dialog title
         self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
+
+        ##### Auxillary Variables #####
+        self.plot_iq = False
+        self.save_signal = False
 
         # Apply dark theme styling for the dialog
         self.setStyleSheet("""
@@ -124,10 +129,12 @@ class ModulationDialog(QDialog):
         # Checkboxes for Additional Options
         self.save_checkbox = QCheckBox("Save Modulated Signal", self)
         self.save_checkbox.setFont(font)
+        self.save_checkbox.stateChanged.connect(self.handle_save_checkbox)  # Connect to handler
         main_layout.addWidget(self.save_checkbox)
 
         self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
         self.plot_iq_checkbox.setFont(font)
+        self.plot_iq_checkbox.stateChanged.connect(self.handle_plot_iq_checkbox)  # Connect to handler
         main_layout.addWidget(self.plot_iq_checkbox)
 
         # Button to Run the Simulation
@@ -157,6 +164,14 @@ class ModulationDialog(QDialog):
         self.selected_mode = mode
         self.display_message(f"Selected Modulation Mode: {self.selected_mode}")
 
+    def handle_save_checkbox(self, state):
+        """Handle state change for Save checkbox."""
+        self.save_signal = state == Qt.Checked
+
+    def handle_plot_iq_checkbox(self, state):
+        """Handle state change for Plot IQ checkbox."""
+        self.plot_iq = state == Qt.Checked
+
     def run_simulation(self):
         #Display Digital & Modulated S
         try:
@@ -164,6 +179,7 @@ class ModulationDialog(QDialog):
             carrier_freq = self.carrier_freq_input.text()
             bit_rate = self.bit_rate_input.text()
             message = self.message_input.text()
+            plot_iq = self.plot_iq_checkbox.isChecked()
 
             # Validate inputs
             if not carrier_freq or not bit_rate or not self.selected_mode or not message:
@@ -174,21 +190,37 @@ class ModulationDialog(QDialog):
             bit_rate = int(bit_rate)
 
             # Initialize the modulator and perform calculations
-            modulator = SimpleModulator(self.selected_mode, bit_rate, carrier_freq)
+            modulator = Modulator(self.selected_mode, bit_rate, carrier_freq)
+            modulator.IQ_Return = self.plot_iq
+            modulator.save_signal = self.save_signal
             bitstr = modulator.msgchar2bit(message)
-            t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
+            digital_signal, x_axis_digital = modulator.digitalsignal(bitstr)
 
+            if modulator.IQ_Return != True:
+                t_axis, modualted_sig = modulator.modulate(bitstr)
+            else:
+                t_axis, modualted_sig, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay = modulator.modulate(bitstr)
             
+
             # Generate the figure
-            digimod_fig = modulator.digital_modulated_plot(bitstr, t_Shaped_Pulse, modulated_signal)
+            digimod_fig = modulator.digital_modulated_plot(digital_signal, x_axis_digital, t_axis, modualted_sig)
 
             digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
             digimod_dialog.exec_()
 
+            if modulator.IQ_Return == True:
+                IQplot_fig = modulator.IQ_plot(t_axis, modualted_sig, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
+                IQplot_dialog = GraphDialog(IQplot_fig, self)  # Display IQ plot in a dialog
+                IQplot_dialog.exec_()
+
         except ValueError as e:
-            self.display_message(f"Error: {str(e)}")
+            # Show verbose error information for ValueErrors
+            error_details = traceback.format_exc()  # Get the full traceback
+            self.display_message(f"ValueError: {str(e)}\nDetails:\n{error_details}")
         except Exception as e:
-            self.display_message(f"An unexpected error occurred: {str(e)}")
+            # Show verbose error information for any other exceptions
+            error_details = traceback.format_exc()  # Get the full traceback
+            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
 
         self.display_message("Simulation completed successfully.")
 
