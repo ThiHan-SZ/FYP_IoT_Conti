@@ -2,103 +2,73 @@ from SimulationClass.ModulationClass import Modulator as SimMod
 from SimulationClass.DemodulationClass import Demodulator as SimDemod
 from SimulationClass.ChannelClass import SimpleGWNChannel_dB
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 import numpy as np
 
-# Test All Modulation Types (BPSK, QPSK, QAM16, QAM64, QAM256, QAM1024, QAM4096)
-# Message will be standardised 
-# Carrier Frequency will be 18kHz
-# Bit Rate will be 1800bps
+# Define modulation types and parameters
+modulation_types = ['BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096']
+bit_rate = 1800
+carrier_freq = 18e3
 
-modulatorBPSK = SimMod('BPSK', 1800, 18e3)
-modulatorQPSK = SimMod('QPSK', 1800, 18e3)
-modulatorQAM16 = SimMod('QAM16', 1800, 18e3)
-modulatorQAM64 = SimMod('QAM64', 1800, 18e3)
-modulatorQAM256 = SimMod('QAM256', 1800, 18e3)
-modulatorQAM1024 = SimMod('QAM1024', 1800, 18e3)
-modulatorQAM4096 = SimMod('QAM4096', 1800, 18e3)
+# Initialize modulators and demodulators
+modulators = {mod: SimMod(mod, bit_rate, carrier_freq) for mod in modulation_types}
+demodulators = {mod: SimDemod(mod, bit_rate, carrier_freq) for mod in modulation_types}
 
-demodulatorBPSK = SimDemod('BPSK', 1800, 18e3)
-demodulatorQPSK = SimDemod('QPSK', 1800, 18e3)
-demodulatorQAM16 = SimDemod('QAM16', 1800, 18e3)
-demodulatorQAM64 = SimDemod('QAM64', 1800, 18e3)
-demodulatorQAM256 = SimDemod('QAM256', 1800, 18e3)
-demodulatorQAM1024 = SimDemod('QAM1024', 1800, 18e3)
-demodulatorQAM4096 = SimDemod('QAM4096', 1800, 18e3)
+# Initialize dictionaries for modulated signals and BER
+modulated_signals = {mod: (None, None) for mod in modulation_types}
+BER_dict = {mod: [] for mod in modulation_types}
 
-Dict_ofModems = {
-    'BPSK': (modulatorBPSK, demodulatorBPSK),
-    'QPSK': (modulatorQPSK, demodulatorQPSK),
-    'QAM16': (modulatorQAM16, demodulatorQAM16),
-    'QAM64': (modulatorQAM64, demodulatorQAM64),
-    'QAM256': (modulatorQAM256, demodulatorQAM256),
-    'QAM1024': (modulatorQAM1024, demodulatorQAM1024),
-    'QAM4096': (modulatorQAM4096, demodulatorQAM4096)
-}
+# Input message and SNR
+with open(r'TestcaseFiles\TinySpeare.txt', 'r') as file:
+    msg = file.read()[:10000]
+SNR_up = int(input("Enter the SNR upper limit in dB: "))
+SNR_down = int(input("Enter the SNR lower limit in dB: "))
+Sample = 1
+SNR_test_range = np.linspace(SNR_down, SNR_up, Sample*(SNR_up-SNR_down) + 1, endpoint=True)
 
-Dict_ofModulatedSignals = {
-    'BPSK': (None,None),
-    'QPSK': (None,None),
-    'QAM16': (None,None),
-    'QAM64': (None,None),
-    'QAM256': (None,None),
-    'QAM1024': (None,None),
-    'QAM4096': (None,None)
-}
-
-Dict_ofBER = {
-    'BPSK': [],
-    'QPSK': [],
-    'QAM16': [],
-    'QAM64': [],
-    'QAM256': [],
-    'QAM1024': [],
-    'QAM4096': []
-}
-
-# Test BPSK Modulation
-msg = input("Enter the bit string to be modulated: ")
-
-SNR = int(input("Enter the SNR limit in dB: "))
-
-SNR_test_range = np.linspace(0,SNR,np.abs(SNR*16))
-
+# Convert message to bit string
 bitstr = SimMod.msgchar2bit(msg)
 int_bitstr = np.array([int(bit) for bit in bitstr])
 
-for mode,(modulator,demodulator) in Dict_ofModems.items():
+slicer_l = 0
+slicer_r = len(modulation_types)
+
+# Process each modulation type
+for mode in modulation_types[slicer_l:slicer_r]:
+    modulator = modulators[mode]
+    demodulator = demodulators[mode]
+    
     digital_signal, x_axis_digital = modulator.digitalsignal(bitstr)
+    t_axis, modulated_sig = modulator.modulate(bitstr) if not modulator.deep_return else modulator.modulate(bitstr)[:2]
+    modulated_signals[mode] = (t_axis, modulated_sig)
     
-    if modulator.deep_return != True:
-        t_axis, modualted_sig = modulator.modulate(bitstr)
-    else:
-        t_axis, modualted_sig, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_Delay = modulator.modulate(bitstr)
-    
-    Dict_ofModulatedSignals[modulator.modulation_mode] = (t_axis, modualted_sig)
-    
-    for i in SNR_test_range:
-        channel = SimpleGWNChannel_dB(i)
-        noisy_signal = channel.add_noise(modualted_sig)
+    for snr in SNR_test_range:
+        channel = SimpleGWNChannel_dB(snr)
+        noisy_signal = channel.add_noise(modulated_sig)
         demod_signal = demodulator.demodulate(noisy_signal)
         RXmessage, demod_bitstr = demodulator.demapping(demod_signal)
         
-        BER = ((int_bitstr == demod_bitstr[:len(int_bitstr)]).mean() * 100)
-        Dict_ofBER[modulator.modulation_mode].append(BER)
+        BER = 1 - ((int_bitstr == demod_bitstr[:len(int_bitstr)]).mean())
+        BER_dict[mode].append(BER)
 
-plt.plot(SNR_test_range, Dict_ofBER['BPSK'], label='BPSK')
-plt.plot(SNR_test_range, Dict_ofBER['QPSK'], label='QPSK')
-plt.plot(SNR_test_range, Dict_ofBER['QAM16'], label='QAM16')
-plt.plot(SNR_test_range, Dict_ofBER['QAM64'], label='QAM64')
-plt.plot(SNR_test_range, Dict_ofBER['QAM256'], label='QAM256')
-plt.plot(SNR_test_range, Dict_ofBER['QAM1024'], label='QAM1024')
-plt.plot(SNR_test_range, Dict_ofBER['QAM4096'], label='QAM4096')
-plt.xlabel('SNR (dB)')
-plt.ylabel('BER (%)')
-plt.title('BER vs SNR')
-plt.legend()
+# Plot results
+fig, ax = plt.subplots(1, 1)
+ax.set_yscale('log')
+ax.set_ylim(1e-10, 1e0)
+ax.grid(which="both", linestyle='--', linewidth=0.5)
+ax.xaxis.set_major_locator(MultipleLocator(1))
+
+colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'black']
+markers = ['o', 's', '^', 'v', '<', '>', 'd']
+
+for mode, color, marker in zip(modulation_types[slicer_l:slicer_r], colors[slicer_l:slicer_r], markers[slicer_l:slicer_r]):
+    ax.plot(SNR_test_range, BER_dict[mode], label=mode, color=color, marker=marker, markevery=Sample)
+
+ax.set_xlabel('SNR (dB)')
+ax.set_ylabel('BER')
+ax.set_title('BER vs SNR')
+ax.legend()
 plt.show()
-
-
-
 
 '''demod_signal = demodulator.demodulate(modualted_sig)
 RXmessage, demod_bitstr = demodulator.demapping(demod_signal)
