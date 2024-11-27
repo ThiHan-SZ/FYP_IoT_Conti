@@ -18,11 +18,10 @@
 ### Software development
 - You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder.
 - The simulator folder contains 
-| Tables   |      Are      |  Cool |
-|----------|:-------------:|------:|
-| col 1 is |  left-aligned | $1600 |
-| col 2 is |    centered   |   $12 |
-| col 3 is | right-aligned |    $1 |
+| First Header  | Second Header |
+| ------------- | ------------- |
+| Content Cell  | Content Cell  |
+| Content Cell  | Content Cell  |
     - [Archive]() | An Archive of Deprecated Code
     - [QAM Generators]()
     - [QAM LUT pkl]()
