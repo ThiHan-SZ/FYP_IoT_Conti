@@ -16,7 +16,7 @@
 - The hardware development section is a re-establishment of the previous project from AY24/25 April
 
 ### Software development
-- You can find the related hardware resources in the [FYP_NextGenIoT_Software](../main/FYP_NextGenIoT_Software) folder.
+- You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder.
 - 
 
 ## Features
