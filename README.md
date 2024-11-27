@@ -12,31 +12,20 @@
 ## Introduction
 
 ### Hardware development
-- You can find the related hardware resources in the [FYP_NextGenIoT_Hardware](../FYP_NextGenIoT_Hardware) folder.
+- You can find the related hardware resources in the [FYP_NextGenIoT_Hardware](../main/FYP_NextGenIoT_Hardware) folder.
 - The hardware development section is a re-establishment of the previous project from AY24/25 April
 
 ### Software development
-- You can find the related hardware resources in the [FYP_NextGenIoT_Software](../FYP_NextGenIoT_Software) folder.
+- You can find the related hardware resources in the [FYP_NextGenIoT_Software](../main/FYP_NextGenIoT_Software) folder.
 - 
+
 ## Features
 
 List the key features of your project.
 
-## Installation
-
-Describe the steps required to install your project.
-
 ## Usage
 
 Provide instructions and examples for using your project.
-
-## Contributing
-
-Explain how others can contribute to your project.
-
-## License
-
-Include the license information for your project.
 
 ## Contact
 
