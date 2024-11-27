@@ -17,16 +17,19 @@
 
 ### Software development
 - You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder.
-- The simulator folder contains 
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
-    - [Archive]() | An Archive of Deprecated Code
-    - [QAM Generators]()
-    - [QAM LUT pkl]()
-    - [Simulator]()
-        - [Simulation Class CLI]()
+- The simulator folder contains :
+
+| Folders  | Description               |
+| ------------- | :--------------------------- |
+| [Archive](../main/FYP_NextGenIoT_Simulator/Archive)   | An archive of deprecated code|
+| [QAM Generators](../main/FYP_NextGenIoT_Simulator/QAM_Generators) | Generator Code for QAM Constellation LUTs            |
+| [QAM LUT pkl](../main/FYP_NextGenIoT_Simulator/QAM_LUT_pkl) | Directory to store all QAM LUTs |
+| [Simulation Class CLI](../main/FYP_NextGenIoT_Simulator/SimulationClassCLI) | CLI variant of simulator - Standalone CLI app |
+| [Simulation Class Compact](../main/FYP_NextGenIoT_Simulator/SimulationClassCompact) | Compact variant of simulator - Import into projects |
+| [Testcase Files](../main/FYP_NextGenIoT_Simulator/TestcaseFiles) | Test Case .txt files containing some test strings |
+| [Test Environment](../main/FYP_NextGenIoT_Simulator/TestEnv)  | Directory containing test scripts |
+| [Wave Files](../main/FYP_NextGenIoT_Simulator/WaveFiles) | Directory to store all generated .wav files |
+
 
 ## Features
 
