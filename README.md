@@ -17,7 +17,10 @@
 
 ### Software development
 - You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder.
-- 
+- The simulator folder contains 
+    - [Archive]()
+    - [QAM Generators]()
+    - [QAM LUT pkl]()
 
 ## Features
 
