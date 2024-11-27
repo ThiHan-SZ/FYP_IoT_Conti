@@ -6,17 +6,16 @@
 
 - [Introduction](#introduction)
 - [Features](#features)
-- [Usage](#usage)
 - [Contact](#contact)
 
 ## Introduction
 
-### Hardware development
-- You can find the related hardware resources in the [FYP_NextGenIoT_Hardware](../main/FYP_NextGenIoT_Hardware) folder.
+#### Hardware development
+- You can find the related hardware resources in the [FYP_NextGenIoT_Hardware](../main/FYP_NextGenIoT_Hardware) folder
 - The hardware development section is a re-establishment of the previous project from AY24/25 April
 
-### Software development
-- You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder.
+#### Software development
+- You can find the related hardware resources in the [FYP_NextGenIoT_Simulator](../main/FYP_NextGenIoT_Simulator) folder
 - The simulator folder contains :
 
 | Folders  | Description               |
@@ -30,15 +29,16 @@
 | [Test Environment](../main/FYP_NextGenIoT_Simulator/TestEnv)  | Directory containing test scripts |
 | [Wave Files](../main/FYP_NextGenIoT_Simulator/WaveFiles) | Directory to store all generated .wav files |
 
+- The direcotry contains the simulator and various scripts and test files used to create and test the simulator
 
 ## Features
 
-List the key features of your project.
+#### Modulator
+- The simulator contains a dynamic modulator that takes in the carrier frequency, bit rate and modulations scheme to generate a modulated transmission signal
 
-## Usage
-
-Provide instructions and examples for using your project.
+#### Demodulator
+- The simulator contains a demodulator that takes in the a wave file, bit rate and modulations scheme to generate a modulated transmission signal
 
 ## Contact
 
-Provide your contact information or the preferred way for others to reach out to you.
+This project was developed by Thi Han Soe Zaw and Wan Yan Kai in AY24/25 October w/ Continental Singapore
