@@ -26,16 +26,16 @@ class Demodulator:
 
         #Demodulation Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
-        self.low_pass_filter_cutoff = 1.5*self.Nyquist_Bandwidth
+        self.low_pass_filter_cutoff = 0.9*self.Nyquist_Bandwidth
         self.low_pass_filter_order = 77
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
         #Plotting Parameters
-        self.plot_IQ = True
+        self.plot_IQ = False
         self.plot_constellation = True
-        '''self.fig = plt.figure()
-        self.ax = self.plot_setup(self.fig)'''
+        self.fig = plt.figure()
+        self.ax = self.plot_setup(self.fig)
 
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
@@ -72,7 +72,7 @@ class Demodulator:
 
         ##### Matched Filtering #####
         RRC_delay = 3*self.symbol_period
-        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
+        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.35,Ts=self.symbol_period, Fs=self.sampling_rate)
 
         baseband_signal_lp = I_lp + 1j*Q_lp
         RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
@@ -151,7 +151,7 @@ class Demodulator:
             bit_array[:] = np.array([list(qam_const[tuple(qam_tree.data[i])]) for i in coord]).flatten()
 
         return bit_array
-'''
+
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -209,4 +209,3 @@ class Demodulator:
             self.plot(demod_signal)
         if self.plot_constellation:
             self.received_constellation(demod_signal)
-'''
