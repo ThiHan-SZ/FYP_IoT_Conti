@@ -11,6 +11,14 @@ class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
     
     def __init__(self, modulation_mode, bit_rate,carrier_freq) -> None:
+        '''
+            Initialize the Modulator class
+
+            Parameters:
+                modulation_mode (str): Modulation mode to be used. Can be 'BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096'.
+                bit_rate (int): Bit rate of the signal.
+                carrier_freq (int): Carrier frequency of the signal.
+        '''
         #Modulation Parameters
         self.carrier_freq = carrier_freq
         self.modulation_mode = modulation_mode
@@ -24,18 +32,35 @@ class Modulator:
         self.oversampling_factor = 10
         self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF 
 
-        #Deep Return Parameters
-        self.deep_return = True
-    
+        #IQ Return and Save Parameters
+        self.IQ_Return = False
+        self.save_signal = False
+
     @staticmethod
-    def msgchar2bit(msg):
+    def msgchar2bit_static(msg):
+        '''
+            Convert bits to characters
+
+            Parameters:
+                msg (str): Bit string to be converted to characters
+        '''
+        return list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
+    
+    def msgchar2bit(self, msg):
         '''
             Convert characters to bits
 
             Parameters:
                 msg (str): Message to be converted to bits
         '''
-        return list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
+        bitstr = list(''.join(f'{byte:08b}' for byte in msg.encode('utf-8')))
+
+        if len(bitstr) % self.order != 0:
+            bitstr.extend(['0']*(self.order - len(bitstr) % self.order))
+
+        bitstr.extend(['0', '0'])
+
+        return bitstr
 
     def digitalsignal(self, bitstr):
         '''
@@ -44,10 +69,6 @@ class Modulator:
             Parameters:
                 bitstr (str): Bit string to be converted to digital signal            
         '''
-        if len(bitstr) % self.order != 0:
-            bitstr.extend(['0']*(self.order - len(bitstr) % self.order))
-
-        bitstr.extend(['0', '0'])
         signal_duration = len(bitstr)*self.symbol_period
         x_axis_digital = np.linspace(0, signal_duration, len(bitstr), endpoint=False)
         digital_signal = np.array([int(bit) for bit in bitstr])
@@ -115,7 +136,7 @@ class Modulator:
                 bitstr (str): Bit string to be modulated
         '''
 
-        with open(rf'QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
+        with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
         bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
@@ -172,7 +193,7 @@ class Modulator:
 
         mixed = I_FC + Q_FC
 
-        if self.deep_return == True:
+        if self.IQ_Return == True:
             return t_Shaped_Pulse, mixed, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
         
         return t_Shaped_Pulse, mixed
