@@ -1,6 +1,6 @@
-from SimulationClass.ModulationClass import Modulator as SimMod
-from SimulationClass.DemodulationClass import Demodulator as SimDemod
-from SimulationClass.ChannelClass import SimpleGWNChannel_dB
+from SimulationClassCompact.ModulationClass import Modulator as SimMod
+from SimulationClassCompact.DemodulationClass import Demodulator as SimDemod
+from SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import numpy as np
@@ -19,15 +19,15 @@ modulated_signals = {mod: (None, None) for mod in modulation_types}
 BER_dict = {mod: [] for mod in modulation_types}
 
 # Input message and SNR
-with open(r'TestcaseFiles\TinySpeare.txt', 'r') as file:
-    msg = file.read()[:10000]
+with open(r'FYP_NextGenIoT_Simulator\TestcaseFiles\TinySpeare.txt', 'r') as file:
+    msg = file.read()[:10]
 SNR_up = int(input("Enter the SNR upper limit in dB: "))
 SNR_down = int(input("Enter the SNR lower limit in dB: "))
 Sample = 1
 SNR_test_range = np.linspace(SNR_down, SNR_up, Sample*(SNR_up-SNR_down) + 1, endpoint=True)
 
 # Convert message to bit string
-bitstr = SimMod.msgchar2bit(msg)
+bitstr = SimMod.msgchar2bit_static(msg)
 int_bitstr = np.array([int(bit) for bit in bitstr])
 
 slicer_l = 0
@@ -38,7 +38,7 @@ for mode in modulation_types[slicer_l:slicer_r]:
     modulator = modulators[mode]
     demodulator = demodulators[mode]
     
-    digital_signal, x_axis_digital = modulator.digitalsignal(bitstr)
+    bitstr = modulator.msgchar2bit(msg)
     t_axis, modulated_sig = modulator.modulate(bitstr) if not modulator.deep_return else modulator.modulate(bitstr)[:2]
     modulated_signals[mode] = (t_axis, modulated_sig)
     
