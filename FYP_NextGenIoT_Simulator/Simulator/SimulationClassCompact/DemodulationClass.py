@@ -31,6 +31,12 @@ class Demodulator:
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
+        #Plotting Parameters
+        self.plot_IQ = True
+        self.plot_constellation = True
+        '''self.fig = plt.figure()
+        self.ax = self.plot_setup(self.fig)'''
+
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
         baseband_signal = signal * np.exp(-1j* 2 *np.pi * self.carrier_freq * t)
@@ -82,7 +88,7 @@ class Demodulator:
 
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
-        return RC_signal[:-(6*self.samples_per_symbol)]
+        return RC_signal
     
     def demapping(self, demod_signal):
         """
@@ -97,7 +103,7 @@ class Demodulator:
                     an error message is returned.
                     - bit_array (np.array): The bit array extracted from the demodulated signal.
         """
-        bit_array = self.DesicionDemapper(demod_signal)
+        bit_array = self.decision_demapper(demod_signal[:-(6*self.samples_per_symbol)])
 
         byte_chunks = [bit_array[i:i+8] for i in range(0, len(bit_array), 8)]
 
@@ -112,58 +118,40 @@ class Demodulator:
 
         return text, bit_array
 
-    def DesicionDemapper(self, demod_signal):
-        """
-            Maps the in-phase (I) and quadrature (Q) components of a signal to a bit array.
+    def decision_demapper(self, demodulated_signal: np.ndarray) -> np.ndarray:
+        """Maps the in-phase (I) and quadrature (Q) components of a signal to a bit array.
 
-            Parameters:
-                demod_signal (np.array): The input demodulated signal containing I and Q components.
+        Parameters:
+            demodulated_signal (np.ndarray): The input demodulated signal containing I and Q components.
 
-            Returns:
-                np.array: Bit array representing the demodulated signal.
-
-            Notes:
-                - For binary modulation (order=1), uses the polarity of the I component to determine bits.
-                - For QPSK (order=2), uses both I and Q components.
-                - For higher-order modulation, a precomputed lookup table (LUT) is used.
+        Returns:
+            np.ndarray: Bit array representing the demodulated signal.
         """
 
-        I = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].real
-        Q = demod_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
-        
-        bitstring = [None]
+        i_samples = demodulated_signal[self.demodulator_total_delay::self.samples_per_symbol].real
+        q_samples = demodulated_signal[self.demodulator_total_delay::self.samples_per_symbol].imag
+
+        bit_array = np.zeros(len(i_samples) * self.order, dtype=int)
 
         if self.order == 1:
-            bitstring = np.where(I > 0, 1, 0)
+            bit_array[:] = np.where(i_samples > 0, 1, 0)
         elif self.order == 2:
-            assert len(I) == len(Q), "I and Q must be of the same length"
+            i_bits = np.where(i_samples > 0, 1, 0)
+            q_bits = np.where(q_samples > 0, 1, 0)
 
-            I_bits = np.where(I > 0, 1, 0)
-            Q_bits = np.where(Q > 0, 1, 0)
-
-            bitstring = np.zeros(len(I)*2, dtype=int)
-            bitstring[0::2] = I_bits
-            bitstring[1::2] = Q_bits 
-
-        
+            bit_array[0::2] = i_bits
+            bit_array[1::2] = q_bits
         else:
-            with open(rf'QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
-                QAM_const = pickle.load(f)
-            
-            QAM_const_coord = [k for k in QAM_const.keys()]
+            with open(f'FYP_NextGenIoT_Simulator/QAM_LUT_pkl/R{self.modulation_mode}.pkl', 'rb') as file:
+                qam_const = pickle.load(file)
 
-            QAM_tree = spysp.KDTree(QAM_const_coord)
+            qam_tree = spysp.KDTree([k for k in qam_const.keys()])
+            coord = qam_tree.query(list(zip(i_samples, q_samples)))[1]
 
-            coord = [QAM_const_coord[QAM_tree.query(i)[1]] for i in list(zip(I,Q))]
+            bit_array[:] = np.array([list(qam_const[tuple(qam_tree.data[i])]) for i in coord]).flatten()
 
-            bitstring = [list(QAM_const[tuple(i)]) for i in coord]
-
-            bitstring = np.array(bitstring).flatten()
-
-        bitstring = [int(bit) for bit in bitstring]
-        
-        return bitstring
-'''   
+        return bit_array
+'''
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -183,8 +171,8 @@ class Demodulator:
     def plot(self, demod_signal):
         delay = self.demodulator_total_delay
         t_axis = np.linspace(0, len(demod_signal)/self.sampling_rate, len(demod_signal), endpoint=False)
-        t_samples = t_axis[delay::self.samples_per_symbol]
-        demod_signal_samples = demod_signal[delay::self.samples_per_symbol]
+        t_samples = t_axis[delay:-(6*self.samples_per_symbol):self.samples_per_symbol]
+        demod_signal_samples = demod_signal[delay:-(6*self.samples_per_symbol):self.samples_per_symbol]
 
         self.ax['Iplot'].plot(t_axis/self.symbol_period, demod_signal.real)
         self.ax['Iplot'].stem(t_samples/self.symbol_period, demod_signal_samples.real, linefmt='r', markerfmt='ro')
@@ -201,6 +189,7 @@ class Demodulator:
         self.ax['Qplot'].grid(True)
     
     def received_constellation(self, demod_signal):
+        demod_signal = demod_signal[:-(6*self.samples_per_symbol)]
         demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
         self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
         self.ax['ConstPlot'].set_title("Received Constellation")
