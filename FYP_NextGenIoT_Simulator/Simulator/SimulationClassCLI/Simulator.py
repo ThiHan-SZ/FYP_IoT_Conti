@@ -1,4 +1,5 @@
-from SimulationClasses.Simulator import ModulationClass, DemodulationClass, SimpleGWNChannel_dB
+from SimulationClassCLI import ModulationClass as Mod, DemodulationClass as Demod
+from SimulationClassCLI.ChannelClass import SimpleGWNChannel_dB
 
 def test_qam4096_alignment(self):
     # Transmit a known bit pattern through the modulator and demodulator at high SNR
