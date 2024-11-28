@@ -173,7 +173,7 @@ class Modulator:
         RRC_delay = 3 * self.symbol_period
 
         # Simulated SRRC filter and pulse shaping (replace with actual filter for real use)
-        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.5,Ts=self.symbol_period, Fs=self.sampling_rate)
+        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.35,Ts=self.symbol_period, Fs=self.sampling_rate)
         shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
         Shaped_Pulse = np.zeros(shaped_pulse_length, dtype=complex)
         Dirac_Comb = np.zeros(shaped_pulse_length, dtype=complex)
