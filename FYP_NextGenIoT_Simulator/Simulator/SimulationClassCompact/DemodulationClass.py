@@ -32,8 +32,8 @@ class Demodulator:
         self.low_pass_filter = self.low_pass_filter()
 
         #Plotting Parameters
-        self.plot_IQ = False
-        self.plot_constellation = True
+        self.plot_IQ = True
+        self.plot_constellation = False
         self.fig = plt.figure()
         self.ax = self.plot_setup(self.fig)
 
@@ -61,8 +61,7 @@ class Demodulator:
                 signal (np.array): The input signal to be demodulated.
 
             Returns:
-                np.array: The baseband envelope of the demodulated signal after processing, 
-                truncated to remove delays introduced during filtering.
+                np.array: The baseband envelope of the demodulated signal after processing.
         """
 
         ##### Downconversion & Lowpassing #####
@@ -89,6 +88,7 @@ class Demodulator:
         self.demodulator_total_delay = int((2*RRC_delay + self.low_pass_delay) * self.sampling_rate)
 
         return RC_signal
+        
     
     def demapping(self, demod_signal):
         """
