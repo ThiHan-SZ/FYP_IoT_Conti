@@ -1,51 +1,62 @@
-from SimulationClassCompact.ModulationClass import Modulator as Mod
-from SimulationClassCompact.DemodulationClass import Demodulator as Demod
+import numpy as np
+import matplotlib.pyplot as plt
+
+from SimulationClassCompact.ModulationClass import Modulator
+from SimulationClassCompact.DemodulationClass import Demodulator
 from SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB
 from sk_dsp_comm import digitalcom as dc
 import commpy
-import matplotlib.pyplot as plt
-import numpy as np
-
-mod_mode = input("Enter modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
-bit_rate = int(input("Enter bit rate: "))
-Carrier_freq = int(input("Enter carrier frequency: "))
-
-modulator = Mod(mod_mode, bit_rate, Carrier_freq)
-demodulator = Demod(mod_mode, bit_rate, Carrier_freq)
-
-##### Matched Filtering #####
-RRC_delay = 3*modulator.symbol_period
-_, rrc = commpy.filters.rrcosfilter(N=int(2*modulator.sampling_rate*RRC_delay),alpha=0.35,Ts=modulator.symbol_period, Fs=modulator.sampling_rate)
-
-message = input("Enter the message: ")
-
-bitstr = modulator.msgchar2bit(message)
-
-modulator.IQ_Return = False
-
-t_Shaped_Pulse, modulated_signal = modulator.modulate(bitstr)
-
-signal = demodulator.demodulate(modulated_signal)
-
-demodulator.plot(signal)
-
-SPS = demodulator.samples_per_symbol
-T = demodulator.symbol_period
-FS = demodulator.sampling_rate
-DELAY = demodulator.demodulator_total_delay
 
 
-def EyeDiagram(signal):
-    samples = []
-    for i in range(len(bitstr)-2):
-        samples.append(signal[DELAY + SPS*i + np.arange(2*SPS)])
-    samples = np.array(samples).T
-    plt.figure()
-    plt.plot(np.linspace(-T,T,2*SPS), samples.real)
+def main():
+    modulation_mode = input("Enter modulation mode (BPSK, QPSK, QAM 16/64/256/1024/4096): ").upper()
+    bit_rate = int(input("Enter bit rate: "))
+    carrier_frequency = int(input("Enter carrier frequency: "))
+
+    modulator = Modulator(modulation_mode, bit_rate, carrier_frequency)
+    demodulator = Demodulator(modulation_mode, bit_rate, carrier_frequency)
+
+    with open('FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt', 'r') as file:
+        message = file.read()[:9000]
+
+    bitstream = modulator.msgchar2bit(message)
+
+    modulator.IQ_Return = False
+
+    _, modulated_signal = modulator.modulate(bitstream)
+
+    demodulated_signal = demodulator.demodulate(modulated_signal)
+
+    samples_per_symbol = demodulator.samples_per_symbol
+    symbol_period = demodulator.symbol_period
+    delay = demodulator.demodulator_total_delay
+    order = demodulator.order
+
+    def plot_eye_diagram(signal):
+        i_samples = []
+        q_samples = []
+        for i in range(int(len(bitstream) / order) - 2):
+            i_samples.append(signal[delay + samples_per_symbol * i + np.arange(2 * samples_per_symbol)].real)
+            if modulation_mode != 'BPSK':
+                q_samples.append(signal[delay + samples_per_symbol * i + np.arange(2 * samples_per_symbol)].imag)
+
+        i_samples = np.array(i_samples).T
+        q_samples = np.array(q_samples).T if modulation_mode != 'BPSK' else None
+        time_axis = np.linspace(-symbol_period, symbol_period, 2 * samples_per_symbol)
+        if modulation_mode != 'BPSK':
+            plt.close('all')  # Close all previous figures
+            fig, ax = plt.subplots(2, 1, constrained_layout=True)
+            ax[0].plot(time_axis, i_samples, color='r')
+            ax[1].plot(time_axis, q_samples, color='b')
+        else:
+            plt.close('all')  # Close all previous figures
+            fig, ax = plt.subplots(1, 1, constrained_layout=True)
+            ax.plot(time_axis, i_samples, color='r')
+        fig.suptitle("Eye Diagram")
         
+    plot_eye_diagram(demodulated_signal)
+    plt.show()
 
-EyeDiagram(signal)
-#drawFullEyeDiagram(signal)
-#plt.tight_layout()
 
-plt.show()
+if __name__ == '__main__':
+    main()
