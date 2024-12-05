@@ -305,6 +305,7 @@ class Modulator:
                 filename (str): Name of the file to be saved
                 modulated_signal (np.array): Modulated signal to be saved
         '''
+        assert self.save_signal == True, "Set save_signal to True to save the modulated signal before calling function."
         modulated_signal /= 2
         modulated_signal = np.array(modulated_signal, dtype=np.float32)
 
