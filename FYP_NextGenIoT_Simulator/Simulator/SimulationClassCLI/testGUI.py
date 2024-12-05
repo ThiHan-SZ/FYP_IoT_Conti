@@ -179,7 +179,6 @@ class ModulationDialog(QDialog):
             carrier_freq = self.carrier_freq_input.text()
             bit_rate = self.bit_rate_input.text()
             message = self.message_input.text()
-            plot_iq = self.plot_iq_checkbox.isChecked()
 
             # Validate inputs
             if not carrier_freq or not bit_rate or not self.selected_mode or not message:
@@ -201,7 +200,9 @@ class ModulationDialog(QDialog):
             else:
                 t_axis, modualted_sig, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay = modulator.modulate(bitstr)
             
-
+            if modulator.save_signal == True:
+                message_filename = message.replace(" ", "_")
+                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_N{modulator.modulation_mode}.wav', modualted_sig)
             # Generate the figure
             digimod_fig = modulator.digital_modulated_plot(digital_signal, x_axis_digital, t_axis, modualted_sig)
 
