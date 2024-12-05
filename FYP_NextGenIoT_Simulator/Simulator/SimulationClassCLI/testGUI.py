@@ -225,7 +225,6 @@ class ModulationDialog(QDialog):
 
         self.display_message("Simulation completed successfully.")
 
-
 # Main Application Window
 class MainWindow(QMainWindow):
     def __init__(self):
