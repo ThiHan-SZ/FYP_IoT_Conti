@@ -118,7 +118,7 @@ class Demodulator:
             bitstring[1::2] = Q_bits 
 
         else:
-            with open(rf'QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
+            with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\R{self.modulation_mode}.pkl', 'rb') as f:
                 QAM_const = pickle.load(f)
             
             QAM_const_coord = [k for k in QAM_const.keys()]
