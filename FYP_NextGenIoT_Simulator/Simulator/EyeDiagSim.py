@@ -23,7 +23,7 @@ def main():
 
     _, modulated_signal = modulator.modulate(bitstream)
 
-    channel = SimpleGWNChannel_dB(-10)
+    channel = SimpleGWNChannel_dB(10)
     noisy_modulated = channel.add_noise(modulated_signal)
 
     demodulated_signal = demodulator.demodulate(noisy_modulated)
