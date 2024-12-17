@@ -1,6 +1,6 @@
 <h1 align="center">Final Year Project</h1>
 
-<p align="center">Development of a Simultor for Wireless Communications</p>
+<p align="center">Development of a Simulator for Wireless Communications</p>
 
 ## Table of Contents
 
