@@ -7,8 +7,8 @@ import numpy as np
 
 # Define modulation types and parameters
 MODULATION_TYPES = ['BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096']
-BIT_RATE = 1800
-CARRIER_FREQ = 18e3
+BIT_RATE = 40000
+CARRIER_FREQ = 200000
 
 # Initialize modulators and demodulators
 modulators = {mod: Mod(mod, BIT_RATE, CARRIER_FREQ) for mod in MODULATION_TYPES}
@@ -22,10 +22,19 @@ fig, ax = plt.subplots(1, 1)
 
 # Input message and SNR
 with open(r'FYP_NextGenIoT_Simulator\TestcaseFiles\TinySpeare.txt', 'r') as file:
-    message = file.read()[:20000]
+    message = file.read()[:15000]
+snr_up,snr_down = 0,0
 
-snr_up = int(input("Enter the SNR upper limit in dB: "))
-snr_down = int(input("Enter the SNR lower limit in dB: "))
+while snr_up <= snr_down:
+    try:
+        snr_up = int(input("Enter the SNR upper limit in dB: "))
+        snr_down = int(input("Enter the SNR lower limit in dB: "))
+        assert snr_up > snr_down, "SNR upper limit must be greater than SNR lower limit"
+    except KeyboardInterrupt:
+        exit()
+    except:
+        print("Invalid SNR. Please re-enter.")
+
 sample = 1
 snr_test_range = np.linspace(snr_down, snr_up, sample*(snr_up-snr_down) + 1, endpoint=True)
 
@@ -43,6 +52,7 @@ for modulation_type in MODULATION_TYPES:
     modulated_signals[modulation_type] = (time_axis, modulated_signal)
     
     for snr in snr_test_range:
+        print(f"Status : {modulation_type} | SNR : {snr}")
         channel = SimpleGWNChannel_dB(snr)
         noisy_signal = channel.add_noise(modulated_signal)
         demod_signal = demodulator.demodulate(noisy_signal)
@@ -51,9 +61,12 @@ for modulation_type in MODULATION_TYPES:
         ber = 1 - ((int_bit_string == demod_bit_string[:len(int_bit_string)]).mean())
         ber_dict[modulation_type].append(ber)
 
-# Plot results
-ax.set_yscale('log')
-ax.set_ylim(1e-6, 1e0)
+# Set y-axis to symlog scale
+ax.set_yscale('symlog', linthresh=1e-5)
+# Custom ticks to include 0 and log-scale values
+ticks = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
+ax.set_yticks(ticks)
+
 ax.grid(which="both", linestyle='--', linewidth=0.5)
 ax.xaxis.set_major_locator(MultipleLocator(1))
 
