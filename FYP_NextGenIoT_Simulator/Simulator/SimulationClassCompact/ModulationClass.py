@@ -86,7 +86,7 @@ class Modulator:
                     t_Shaped_Pulse (np.array): Time axis of the shaped pulse.
                     mixed (np.array): Mixed modulated signal with pulse shaping and carrier frequency upconversion.
                 
-            If `deep_return` is True, the function also returns:
+            If `IQ_Return` is True, the function also returns:
                 - I_FC (np.array): In-phase Upconverted component of the transmission signal.
                 - Q_FC (np.array): Quadrature Upconverted component of the transmission signal.
                 - I_processed (np.array): In-phase component of the pulse shaped signal.
@@ -160,7 +160,7 @@ class Modulator:
                     t_Shaped_Pulse (np.array): Time axis of the shaped pulse.
                     mixed (np.array): Mixed modulated signal with pulse shaping and carrier frequency upconversion.
                 
-            If `deep_return` is True, the function also returns:
+            If `IQ_Return` is True, the function also returns:
                 - I_FC (np.array): In-phase Upconverted component of the transmission signal.
                 - Q_FC (np.array): Quadrature Upconverted component of the transmission signal.
                 - I_processed (np.array): In-phase component of the pulse shaped signal.
@@ -206,6 +206,7 @@ class Modulator:
                 filename (str): Name of the file to be saved
                 modulated_signal (np.array): Modulated signal to be saved
         '''
+        assert self.save_signal == True, "Set save_signal to True to save the modulated signal before calling function."
         modulated_signal /= 2
         modulated_signal = np.array(modulated_signal, dtype=np.float32)
 

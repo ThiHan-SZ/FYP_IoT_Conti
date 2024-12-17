@@ -22,7 +22,7 @@ fig, ax = plt.subplots(1, 1)
 
 # Input message and SNR
 with open(r'FYP_NextGenIoT_Simulator\TestcaseFiles\TinySpeare.txt', 'r') as file:
-    message = file.read()[:5000]
+    message = file.read()[:20000]
 
 snr_up = int(input("Enter the SNR upper limit in dB: "))
 snr_down = int(input("Enter the SNR lower limit in dB: "))
@@ -53,7 +53,7 @@ for modulation_type in MODULATION_TYPES:
 
 # Plot results
 ax.set_yscale('log')
-ax.set_ylim(1e-9, 1e0)
+ax.set_ylim(1e-6, 1e0)
 ax.grid(which="both", linestyle='--', linewidth=0.5)
 ax.xaxis.set_major_locator(MultipleLocator(1))
 

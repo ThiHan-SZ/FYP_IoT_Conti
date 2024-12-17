@@ -2,28 +2,39 @@ import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox
+    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox, QScrollArea
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
-from testmodulator import Modulator  # Import the Modulator class for signal modulation logic
 from matplotlib.figure import Figure
+
+from SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB
+from SimulationClassCompact.DemodulationClass import Demodulator
+from SimulationClassCompact.ModulationClass import Modulator
+
 import traceback
 
-class GraphDialog(QDialog):
-    def __init__(self, figure, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Graph Viewer")
-        self.setGeometry(150, 150, 2400, 1500)
+class ScrollableFigureDialog(QDialog):
+    def __init__(self):
+        super().__init__()
 
-        # Layout for the dialog
-        layout = QVBoxLayout()
-        # Matplotlib canvas
-        self.canvas = FigureCanvas(figure)
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
 
-# Dialog for Modulation
+        self.container = QWidget()
+        self.container_layout = QVBoxLayout()
+        self.container.setLayout(self.container_layout)
+
+        self.scroll_area.setWidget(self.container)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.scroll_area)
+        self.setLayout(self.layout)
+
+    def add_figure(self, figure):
+        canvas = FigureCanvas(figure)
+        self.container_layout.addWidget(canvas)
+
 class ModulationDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -154,7 +165,7 @@ class ModulationDialog(QDialog):
         # Set the layout of the dialog
         self.setLayout(main_layout)
         self.selected_mode = None  # Store the selected modulation mode
-
+    
     def display_message(self, message):
         """Append a message to the output display."""
         self.output_display.append(message)
@@ -180,11 +191,10 @@ class ModulationDialog(QDialog):
             bit_rate = self.bit_rate_input.text()
             message = self.message_input.text()
 
-            # Validate inputs
             if not carrier_freq or not bit_rate or not self.selected_mode or not message:
                 self.display_message("Please provide all inputs and select a modulation mode.")
                 return
-
+            
             carrier_freq = int(carrier_freq)
             bit_rate = int(bit_rate)
 
@@ -202,17 +212,8 @@ class ModulationDialog(QDialog):
             
             if modulator.save_signal == True:
                 message_filename = message.replace(" ", "_")
-                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_N{modulator.modulation_mode}.wav', modualted_sig)
-            # Generate the figure
-            digimod_fig = modulator.digital_modulated_plot(digital_signal, x_axis_digital, t_axis, modualted_sig)
-
-            digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
-            digimod_dialog.exec_()
-
-            if modulator.IQ_Return == True:
-                IQplot_fig = modulator.IQ_plot(t_axis, modualted_sig, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
-                IQplot_dialog = GraphDialog(IQplot_fig, self)  # Display IQ plot in a dialog
-                IQplot_dialog.exec_()
+                modulator.save(f'Simulator_File__{message_filename}__{carrier_freq/1000}kHz_{bit_rate/1000}kbps_N{modulator.modulation_mode}.wav', modualted_sig)
+                self.display_message("Signal saved successfully.")
 
         except ValueError as e:
             # Show verbose error information for ValueErrors
@@ -224,67 +225,3 @@ class ModulationDialog(QDialog):
             self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
 
         self.display_message("Simulation completed successfully.")
-
-# Main Application Window
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Wireless Comms SimTool")  
-        self.setGeometry(0, 0, 1200, 800)  # Set size 
-
-        # Dark theme 
-        self.setStyleSheet("""
-            QMainWindow { background-color: #2e2e2e; color: #ffffff; }
-            QPushButton { 
-                background-color: #4e4e4e; 
-                border-radius: 5px; 
-                padding: 15px;
-                color: #ffffff;
-            }
-            QPushButton:hover { background-color: #5e5e5e; }
-        """)
-
-        #setting fonts and layout
-        font = QFont("SF Pro", 12, QFont.Bold)
-        central_widget = QWidget()
-        main_layout = QVBoxLayout()
-
-        # Modulation Button
-        self.mod_button = QPushButton("Modulator", self)
-        self.mod_button.setFont(font)
-        self.mod_button.setFixedSize(1000, 80)
-        self.mod_button.clicked.connect(self.open_modulation_dialog)
-
-        #  DeModulation Button
-        self.demod_button = QPushButton("Demodulator", self)
-        self.demod_button.setFont(font)
-        self.demod_button.setFixedSize(1000, 80)
-
-        # Add buttons to the main layout
-        main_layout.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.mod_button)
-        main_layout.addSpacing(20)
-        main_layout.addWidget(self.demod_button)
-
-        central_widget.setLayout(main_layout)
-        self.setCentralWidget(central_widget)
-
-        self.dialog = None  # Store the dialog instance
-
-    def open_modulation_dialog(self):
-        """Open the modulation dialog."""
-        if self.dialog is None:  # Ensure only one dialog instance
-            self.dialog = ModulationDialog()
-            self.dialog.finished.connect(self.on_dialog_closed)
-            self.dialog.show()
-
-    def on_dialog_closed(self):
-        """Handle dialog closure."""
-        self.dialog = None  # Reset the dialog reference
-
-# Application Entry Point
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())

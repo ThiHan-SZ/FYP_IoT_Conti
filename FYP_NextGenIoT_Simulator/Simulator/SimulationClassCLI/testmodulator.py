@@ -116,7 +116,7 @@ class Modulator:
                 bitstr (str): Bit string to be modulated
         '''
 
-        with open(rf'QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
+        with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
         assert len(bitstr[:-2]) % self.order == 0, "Bitstring Length Not Extended Correctly"
@@ -305,6 +305,7 @@ class Modulator:
                 filename (str): Name of the file to be saved
                 modulated_signal (np.array): Modulated signal to be saved
         '''
+        assert self.save_signal == True, "Set save_signal to True to save the modulated signal before calling function."
         modulated_signal /= 2
         modulated_signal = np.array(modulated_signal, dtype=np.float32)
 
