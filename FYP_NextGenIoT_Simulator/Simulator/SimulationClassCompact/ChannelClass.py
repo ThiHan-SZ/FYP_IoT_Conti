@@ -1,10 +1,13 @@
 from numpy import sum, abs, sqrt
-from numpy.random import normal
+from numpy.random import normal, seed as nprseed
 
 class SimpleGWNChannel_dB:
 
-    def __init__(self, SNR):
+    def __init__(self, SNR, seed=1):
         self.SNR = SNR
+        self.seed = seed
+        if seed is not None:
+            nprseed(seed)
 
     def add_noise(self, signal):
         
