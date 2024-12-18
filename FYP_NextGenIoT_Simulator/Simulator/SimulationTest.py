@@ -38,10 +38,14 @@ while snr_up <= snr_down:
 sample = 1
 snr_test_range = np.linspace(snr_down, snr_up, sample*(snr_up-snr_down) + 1, endpoint=True)
 
+ChannelDict = {snr: SimpleGWNChannel_dB(snr, seed=1) for snr in snr_test_range}
+
 # Convert message to bit string
 bit_string = Mod.msgchar2bit_static(message)
 int_bit_string = np.array([int(bit) for bit in bit_string[:-2]])
 
+total_iter = len(snr_test_range) * len(MODULATION_TYPES)
+current_iter = 0
 # Process each modulation type
 for modulation_type in MODULATION_TYPES:
     modulator = modulators[modulation_type]
@@ -52,14 +56,15 @@ for modulation_type in MODULATION_TYPES:
     modulated_signals[modulation_type] = (time_axis, modulated_signal)
     
     for snr in snr_test_range:
-        print(f"Status : {modulation_type} | SNR : {snr}")
-        channel = SimpleGWNChannel_dB(snr)
+        current_iter += 1
+        print(f"Processing {modulation_type} at SNR {snr} dB ({current_iter/total_iter*100:.2f})%")
+        channel = ChannelDict[snr]
         noisy_signal = channel.add_noise(modulated_signal)
-        demod_signal = demodulator.demodulate(noisy_signal)
-        rx_message, demod_bit_string = demodulator.demapping(demod_signal)
-        
-        ber = 1 - ((int_bit_string == demod_bit_string[:len(int_bit_string)]).mean())
-        ber_dict[modulation_type].append(ber)
+        demodulated_signal = demodulator.demodulate(noisy_signal)
+        demodulated_bits = demodulator.demapping(demodulated_signal)[1][:-2]
+        error_bits = np.sum(np.abs(int_bit_string - demodulated_bits))
+        ber_dict[modulation_type].append(error_bits / len(bit_string))
+    
 
 # Set y-axis to symlog scale
 ax.set_yscale('symlog', linthresh=1e-5)
