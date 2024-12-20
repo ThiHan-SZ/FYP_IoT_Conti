@@ -11,7 +11,7 @@ bps = 115200
 timex = 5
 retry_times = 5
 delay_chip = 20
-ip = "13.215.190.105"
+ip = "3.1.103.12"
 port_num = "6001"
 
 CYCLE_DELAY = 1  #SEC
