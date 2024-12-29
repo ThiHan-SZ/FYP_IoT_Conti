@@ -1,5 +1,4 @@
 import commpy.filters
-from matplotlib import pyplot as plt
 from scipy.io import wavfile as wav
 import numpy as np
 import scipy.signal as sig
