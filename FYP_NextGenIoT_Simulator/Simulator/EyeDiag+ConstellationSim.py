@@ -37,7 +37,7 @@ def plot_eye_diagram(signal, bitstream, modulation_mode, order, samples_per_symb
             ax['Iplot'].plot(time_axis, i_samples, color='r')
     
 def received_constellation(demod_signal, order, samples_per_symbol, delay, ax):
-    demod_signal_samples = demod_signal[delay::samples_per_symbol]
+    demod_signal_samples = demod_signal[delay:-6*samples_per_symbol:samples_per_symbol]
     ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
     ax['ConstPlot'].set_title("Received Constellation")
     ax['ConstPlot'].set_xlabel("I")
@@ -58,7 +58,7 @@ def main():
     demodulator = Demodulator(modulation_mode, bit_rate, carrier_frequency)
 
     with open('FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt', 'r') as file:
-        message = file.read()[:500]
+        message = file.read()[:15000]
 
     bitstream = modulator.msgchar2bit(message)
 
