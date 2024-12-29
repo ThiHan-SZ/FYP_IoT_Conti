@@ -31,12 +31,12 @@ class Demodulator:
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
-        #Plotting Parameters
+        '''#Plotting Parameters
         self.plot_IQ = True
         self.plot_constellation = False
-        self.fig = plt.figure()
+        self.fig = plt.figure('Demodulator', constrained_layout=True)
         self.ax = self.plot_setup(self.fig)
-
+        '''
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
         baseband_signal = signal * np.exp(-1j* 2 *np.pi * self.carrier_freq * t)
@@ -151,7 +151,8 @@ class Demodulator:
             bit_array[:] = np.array([list(qam_const[tuple(qam_tree.data[i])]) for i in coord]).flatten()
 
         return bit_array
-
+    #### Plotting Functions ####
+    '''    
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -166,6 +167,9 @@ class Demodulator:
         elif self.plot_constellation:
             gridspec = fig.add_gridspec(nrows=1, ncols=1)
             axes['ConstPlot'] = fig.add_subplot(gridspec[0, 0])
+        else:
+            plt.close('all')
+            return None
         return axes
 
     def plot(self, demod_signal):
@@ -208,4 +212,4 @@ class Demodulator:
         if self.plot_IQ:
             self.plot(demod_signal)
         if self.plot_constellation:
-            self.received_constellation(demod_signal)
+            self.received_constellation(demod_signal)'''
