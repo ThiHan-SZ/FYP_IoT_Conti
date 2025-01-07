@@ -396,6 +396,13 @@ class DemodulationDialog(QDialog):
         demodulation_layout.addLayout(qam_layout)
         self.main_layout.addLayout(demodulation_layout)
 
+        # Run Demodulation Button
+        self.run_demod_button = QPushButton("Run Demodulation", self)
+        self.run_demod_button.setFont(font)
+        self.run_demod_button.setFixedSize(300, 50)
+        #self.run_demod_button.clicked.connect(self.run_demodulation)  # Replace with your demodulation logic
+        self.main_layout.addWidget(self.run_demod_button, alignment=Qt.AlignCenter)
+
         # Output Display (Terminal-like)
         self.output_display = QTextEdit(self)
         self.output_display.setFont(font)
