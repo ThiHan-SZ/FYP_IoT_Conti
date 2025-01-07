@@ -241,6 +241,7 @@ class MainWindow(QMainWindow):
             self.dialog.finished.connect(self.on_dialog_closed)
             self.dialog.show()
 
+
     def on_dialog_closed(self):
         """Handle dialog closure."""
         self.dialog = None  # Reset the dialog reference

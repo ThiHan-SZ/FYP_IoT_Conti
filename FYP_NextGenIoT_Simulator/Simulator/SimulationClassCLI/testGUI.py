@@ -2,7 +2,7 @@ import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox, QFileDialog
+    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox, QFileDialog,QScrollArea,QComboBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -13,6 +13,27 @@ from testdemodulator import Demodulator
 
 from matplotlib.figure import Figure
 import traceback
+
+class ScrollableFigureDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+
+        self.container = QWidget()
+        self.container_layout = QVBoxLayout()
+        self.container.setLayout(self.container_layout)
+
+        self.scroll_area.setWidget(self.container)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.scroll_area)
+        self.setLayout(self.layout)
+
+    def add_figure(self, figure):
+        canvas = FigureCanvas(figure)
+        self.container_layout.addWidget(canvas)
 
 class GraphDialog(QDialog):
     def __init__(self, figure, parent=None):
@@ -233,13 +254,13 @@ class ModulationDialog(QDialog):
 class DemodulationDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("De-Modulation")  # Set the dialog title
-        self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
+        self.setWindowTitle("De-Modulation")
+        self.setGeometry(100, 100, 1200, 800)
 
-        # Apply dark theme styling for the dialog
+        # Apply dark theme styling
         self.setStyleSheet("""
             QDialog { background-color: #2e2e2e; color: #ffffff; }
-            QLabel, QLineEdit, QPushButton, QTextEdit { color: #ffffff; }
+            QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox { color: #ffffff; }
             QLineEdit { background-color: #3e3e3e; padding: 5px; border-radius: 5px; }
             QTextEdit { background-color: #3e3e3e; padding: 10px; }
             QPushButton {
@@ -248,79 +269,108 @@ class DemodulationDialog(QDialog):
                 padding: 10px;
             }
             QPushButton:hover { background-color: #5e5e5e; }
+            QPushButton[selected="true"] { background-color: #2b8cff; }
             QCheckBox { color: #ffffff; }
         """)
 
-        font = QFont("SF Pro", 10)  # Default font for the GUI elements
+        font = QFont("SF Pro", 10)
+        self.selected_channels = set()
 
-        # Main layout of the dialog
-        main_layout = QVBoxLayout(self)
+        # Main layout
+        self.main_layout = QVBoxLayout(self)
 
         # Channel Mode Section
         channel_mode_layout = QVBoxLayout()
-        channel_mode_label = QLabel("Channel Mode:", font=font)  # Section label
+        channel_mode_label = QLabel("Channel Mode:", font=font)
         channel_mode_layout.addWidget(channel_mode_label, alignment=Qt.AlignLeft)
 
-        # Buttons for Channel Modes Modulation Modes
+        # Buttons for Channel Modes
         channel_mode_buttons_layout = QHBoxLayout()
+        self.channel_buttons = {
+            "AWGN": QPushButton("AWGN", self),
+            "Flat Fading": QPushButton("Flat Fading", self),
+            "Freq Drift": QPushButton("Freq Drift", self),
+            "Freq Offset": QPushButton("Freq Offset", self),
+            "Delay": QPushButton("Delay", self)
+        }
 
-        self.awgn_button = QPushButton("AWGN", self)  # Button for BPSK
-        self.awgn_button.setFont(font)
-        self.awgn_button.setFixedSize(150, 50)
-        self.awgn_button.clicked.connect(lambda: self.select_channel_mode("AWGN"))
-        
-        self.fading_button = QPushButton("Fading", self)  # Button for BPSK
-        self.fading_button.setFont(font)
-        self.fading_button.setFixedSize(150, 50)
-        self.fading_button.clicked.connect(lambda: self.select_channel_mode("Fading"))
-        
-        channel_mode_buttons_layout.addWidget(self.awgn_button)
-        channel_mode_buttons_layout.addWidget(self.fading_button)
+        for name, button in self.channel_buttons.items():
+            button.setFont(font)
+            button.setFixedSize(150, 50)
+            button.setProperty("selected", "false")
+            button.clicked.connect(lambda checked, n=name: self.toggle_channel_button(n))
+            channel_mode_buttons_layout.addWidget(button)
+
         channel_mode_buttons_layout.addStretch()
         channel_mode_layout.addLayout(channel_mode_buttons_layout)
-        main_layout.addLayout(channel_mode_layout)
-        
-        # Input for SNR 
-        snr_layout = QHBoxLayout()
-        snr_label = QLabel("SNR of channel:", font=font)  # Label for SNR input
-        self.snr_input = QLineEdit(self)  # Input field for SNR
-        self.snr_input.setPlaceholderText("Enter SNR (dB)")
-        self.snr_input.setFont(font)
-        self.snr_input.setFixedWidth(400)
-        snr_layout.addWidget(snr_label)
-        snr_layout.addWidget(self.snr_input)
-        snr_layout.addStretch()
-        main_layout.addLayout(snr_layout)
-        
-        # Input for Bit Rate
+        self.main_layout.addLayout(channel_mode_layout)
+
+        # Conditional Inputs (initially hidden)
+        self.conditional_inputs = {}
+
+        # SNR Input for AWGN
+        self.conditional_inputs["AWGN"] = self.create_input_layout("SNR of channel:", "Enter SNR (dB)")
+
+        # Flat Fading Inputs
+        flat_fading_layout = QVBoxLayout()
+        self.flat_fading_selection = QComboBox(self)
+        self.flat_fading_selection.addItems(["Select Fading Type", "Rician", "Rayleigh"])
+        self.flat_fading_selection.setFont(font)
+        self.flat_fading_selection.currentTextChanged.connect(self.handle_flat_fading_selection)
+        flat_fading_layout.addWidget(self.flat_fading_selection)
+
+        self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor")
+        self.rician_input_layout.hide()  # Hidden until "Rician" is selected
+        flat_fading_layout.addWidget(self.rician_input_layout)
+
+        flat_fading_widget = QWidget()
+        flat_fading_widget.setLayout(flat_fading_layout)
+        flat_fading_widget.hide()  # Hide until Flat Fading is selected
+        self.conditional_inputs["Flat Fading"] = flat_fading_widget
+        self.main_layout.addWidget(flat_fading_widget)
+
+        # Freq Drift Input
+        self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/s)")
+
+        # Freq Offset Input
+        self.conditional_inputs["Freq Offset"] = self.create_input_layout("Freq Offset:", "Enter freq offset (Hz)")
+
+        # Delay Input
+        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples)")
+
+        # Add all conditional inputs to the main layout
+        for widget in self.conditional_inputs.values():
+            self.main_layout.addWidget(widget)
+            widget.hide()
+
+        # Bit Rate Section
         bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)  # Label for bit rate input
-        self.bit_rate_input = QLineEdit(self)  # Input field for bit rate
+        bitrate_label = QLabel("Bit Rate:", font=font)
+        self.bit_rate_input = QLineEdit(self)
         self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
         self.bit_rate_input.setFont(font)
         self.bit_rate_input.setFixedWidth(400)
         bitrate_layout.addWidget(bitrate_label)
         bitrate_layout.addWidget(self.bit_rate_input)
         bitrate_layout.addStretch()
-        main_layout.addLayout(bitrate_layout)
-        
-        
-        # DeModulation Mode Buttons
+        self.main_layout.addLayout(bitrate_layout)
+
+        # Demodulation Modes Section
         demodulation_layout = QVBoxLayout()
-        demodulation_mode_label = QLabel("Modulation Mode:", font=QFont("SF Pro", 10))  # Section label
+        demodulation_mode_label = QLabel("Demodulation Mode:", font=font)
         demodulation_layout.addWidget(demodulation_mode_label, alignment=Qt.AlignLeft)
 
-        # Buttons for BPSK and QPSK Modulation Modes
+        # Buttons for BPSK and QPSK
         bpsk_qpsk_layout = QHBoxLayout()
-        self.bpsk_button = QPushButton("BPSK", self)  # Button for BPSK
+        self.bpsk_button = QPushButton("BPSK", self)
         self.bpsk_button.setFont(font)
         self.bpsk_button.setFixedSize(150, 50)
-        self.bpsk_button.clicked.connect(lambda: self.select_demodulation_mode("BPSK"))  # On-click handler
+        self.bpsk_button.clicked.connect(lambda: self.display_message("BPSK selected"))
 
-        self.qpsk_button = QPushButton("QPSK", self)  # Button for QPSK
+        self.qpsk_button = QPushButton("QPSK", self)
         self.qpsk_button.setFont(font)
         self.qpsk_button.setFixedSize(150, 50)
-        self.qpsk_button.clicked.connect(lambda: self.select_demodulation_mode("QPSK"))
+        self.qpsk_button.clicked.connect(lambda: self.display_message("QPSK selected"))
 
         bpsk_qpsk_layout.addWidget(self.bpsk_button)
         bpsk_qpsk_layout.addWidget(self.qpsk_button)
@@ -337,49 +387,64 @@ class DemodulationDialog(QDialog):
             "QAM4096": QPushButton("QAM4096")
         }
 
-        # Add QAM buttons dynamically and connect their signals
         for mode, button in self.qam_buttons.items():
             button.setFont(font)
             button.setFixedSize(150, 50)
-            button.clicked.connect(lambda checked, m=mode: self.select_modulation_mode(m))
+            button.clicked.connect(lambda checked, m=mode: self.display_message(f"{m} selected"))
             qam_layout.addWidget(button)
         qam_layout.addStretch()
         demodulation_layout.addLayout(qam_layout)
-        main_layout.addLayout(demodulation_layout)
+        self.main_layout.addLayout(demodulation_layout)
 
+        # Output Display (Terminal-like)
+        self.output_display = QTextEdit(self)
+        self.output_display.setFont(font)
+        self.output_display.setReadOnly(True)
+        self.output_display.setFixedHeight(200)
+        self.main_layout.addWidget(self.output_display)
 
-        #insert filepath
-        # Main layout for the dialog
-        filepath_layout = QVBoxLayout(self)
+    def create_input_layout(self, label_text, placeholder_text):
+        """Helper to create labeled input layout."""
+        layout = QHBoxLayout()
+        label = QLabel(label_text)
+        label.setFont(QFont("SF Pro", 10))
+        input_field = QLineEdit(self)
+        input_field.setPlaceholderText(placeholder_text)
+        input_field.setFont(QFont("SF Pro", 10))
+        input_field.setFixedWidth(400)
+        layout.addWidget(label)
+        layout.addWidget(input_field)
+        layout.addStretch()
+        widget = QWidget()
+        widget.setLayout(layout)
+        return widget
 
-        # Label to display file path
-        self.file_label = QLabel("No file selected", self)
-        self.file_label.setAlignment(Qt.AlignCenter)
-        filepath_layout.addWidget(self.file_label)
-
-        # Button to trigger the file open dialog
-        self.open_button = QPushButton("Open File", self)
-        self.open_button.clicked.connect(self.open_file)  # Connect button to open file function
-        filepath_layout.addWidget(self.open_button)
-
-        # Set layout for the dialog
-        filepath_layout.addWidget(self.open_button)
-        main_layout.addLayout(filepath_layout)
-
-        self.open_button = QPushButton("Open File", self)
-        self.open_button.clicked.connect(self.open_file)  # Connect button to open file function
-        
-        
-    def open_file(self):
-        # Open a file dialog and allow the user to select a file
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open File", "", "All Files (*);;Text Files (*.txt)", options=options)
-
-        if file_path:
-            # Update label to show the selected file path
-            self.file_label.setText(f"Selected File: {file_path}")
+    def toggle_channel_button(self, channel_name):
+        """Toggle the state of a channel button."""
+        button = self.channel_buttons[channel_name]
+        if button.property("selected") == "true":
+            button.setProperty("selected", "false")
+            button.setStyle(button.style())
+            self.selected_channels.discard(channel_name)
+            self.display_message(f"{channel_name} deselected")
+            self.conditional_inputs[channel_name].hide()
         else:
-            self.file_label.setText("No file selected")
+            button.setProperty("selected", "true")
+            button.setStyle(button.style())
+            self.selected_channels.add(channel_name)
+            self.display_message(f"{channel_name} selected")
+            self.conditional_inputs[channel_name].show()
+
+    def handle_flat_fading_selection(self, selection):
+        """Handle the fading type selection."""
+        if selection == "Rician":
+            self.rician_input_layout.show()
+        else:
+            self.rician_input_layout.hide()
+
+    def display_message(self, message):
+        """Append a message to the output display."""
+        self.output_display.append(message)
 
 # Main Application Window
 class MainWindow(QMainWindow):
@@ -416,7 +481,7 @@ class MainWindow(QMainWindow):
         self.demod_button.setFont(font)
         self.demod_button.setFixedSize(1000, 80)
         self.demod_button.clicked.connect(self.open_demodulation_dialog)
-
+        
         # Add buttons to the main layout
         main_layout.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.mod_button)
