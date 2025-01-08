@@ -60,7 +60,7 @@ class SimpleFlatFadingChannel:
         if type != "rayleigh" and type != "rician":
             raise ValueError("Invalid type, must be 'rayleigh' or 'rician'")
         elif type == 'rician':
-            rician_k = int(input("Enter the Rician K factor: "))
+            self.rician_k = int(input("Enter the Rician K factor: "))
         self.type = type
         
         self.seed = seed
@@ -71,14 +71,14 @@ class SimpleFlatFadingChannel:
         
         if self.type == "rayleigh":
             # Diffuse component (Rayleigh fading)
-            h = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(10)
+            h = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(2)
                 
         elif self.type == "rician":
             # Line-of-sight (LOS) component
             los_component = sqrt(self.rician_k / (self.rician_k + 1))
             
             # Diffuse component (Rayleigh fading)
-            diffuse_component = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(10)
+            diffuse_component = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(2)
             
             # Rician fading: LOS + diffuse components
             h = los_component + sqrt(1 / (self.rician_k + 1)) * diffuse_component
