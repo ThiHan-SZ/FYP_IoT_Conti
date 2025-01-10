@@ -50,13 +50,11 @@ def main():
 
     _, modulated_signal = modulator.modulate(bitstream)
 
-    delays = np.linspace(-0.5, 0.5, 11, endpoint=True)
+    '''delays = np.linspace(-0.5, 0.5, 11, endpoint=True)
     for delay in delays:
-        channel = SimpleDelayChannel(delay)
         channel2 = SimpleFrequencyDriftChannel(0.03)
         channel3 = SimpleGWNChannel_dB(10)
-        noisy_modulated = channel.add_delay(modulated_signal)
-        noisy_modulated = channel2.add_drift(noisy_modulated)
+        noisy_modulated = channel2.add_drift(modulated_signal)
         noisy_modulated = channel3.add_noise(noisy_modulated)
 
         demodulated_signal = demodulator.demodulate(noisy_modulated)
@@ -68,9 +66,9 @@ def main():
 
         received_constellation(demodulated_signal, order, samples_per_symbol, delay)
     
-    plt.legend(delays, title="Delay (fractions)")
-    '''channel = SimpleDelayChannel(0.6)
-    noisy_modulated = channel.add_delay(modulated_signal)
+    plt.legend(delays, title="Delay (fractions)")'''
+    channel = SimpleFlatFadingChannel('rayleigh')
+    noisy_modulated = channel.add_fading(modulated_signal)
 
     demodulated_signal = demodulator.demodulate(noisy_modulated)
 
@@ -79,7 +77,7 @@ def main():
     delay = demodulator.demodulator_total_delay
     order = demodulator.order
 
-    received_constellation(demodulated_signal, order, samples_per_symbol, delay)'''
+    received_constellation(demodulated_signal, order, samples_per_symbol, delay)
 
     plt.show()
 
