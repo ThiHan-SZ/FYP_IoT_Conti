@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
-# Import the Modulator class for signal modulation logic
 
 from testmodulator import Modulator
 from testdemodulator import Demodulator
@@ -298,8 +297,6 @@ class DemodulationDialog(QDialog):
         self.scroll_layout = QVBoxLayout(self.scroll_container)
         self.scroll_area.setWidget(self.scroll_container)
         
-
-        # Add conditional inputs inside the scrollable layout
         """All Conditional Inputs"""
         self.conditional_inputs = {}
 
