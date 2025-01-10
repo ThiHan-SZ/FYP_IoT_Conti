@@ -1,8 +1,9 @@
 import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox, QFileDialog,QScrollArea,QComboBox
+    QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, 
+    QWidget,QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, 
+    QMessageBox, QFileDialog,QScrollArea,QComboBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -13,27 +14,6 @@ from testdemodulator import Demodulator
 
 from matplotlib.figure import Figure
 import traceback
-
-class ScrollableFigureDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-
-        self.container = QWidget()
-        self.container_layout = QVBoxLayout()
-        self.container.setLayout(self.container_layout)
-
-        self.scroll_area.setWidget(self.container)
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.scroll_area)
-        self.setLayout(self.layout)
-
-    def add_figure(self, figure):
-        canvas = FigureCanvas(figure)
-        self.container_layout.addWidget(canvas)
 
 class GraphDialog(QDialog):
     def __init__(self, figure, parent=None):
@@ -255,7 +235,7 @@ class DemodulationDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("De-Modulation")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1200, 1000)
 
         # Apply dark theme styling
         self.setStyleSheet("""
@@ -305,7 +285,22 @@ class DemodulationDialog(QDialog):
         channel_mode_layout.addLayout(channel_mode_buttons_layout)
         self.main_layout.addLayout(channel_mode_layout)
 
-        # Conditional Inputs (initially hidden)
+        # Scrollable Conditional Inputs
+        """Scroll Container"""
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+
+        self.scroll_container = QWidget()
+        self.scroll_container.setStyleSheet("""
+            background-color:rgb(71, 70, 70); /* Set the background color for the container */
+        """)
+
+        self.scroll_layout = QVBoxLayout(self.scroll_container)
+        self.scroll_area.setWidget(self.scroll_container)
+        
+
+        # Add conditional inputs inside the scrollable layout
+        """All Conditional Inputs"""
         self.conditional_inputs = {}
 
         # SNR Input for AWGN
@@ -314,6 +309,13 @@ class DemodulationDialog(QDialog):
         # Flat Fading Inputs
         flat_fading_layout = QVBoxLayout()
         self.flat_fading_selection = QComboBox(self)
+        self.flat_fading_selection.setStyleSheet("""
+            QComboBox {
+                background-color: #ffffff;
+                color: #000000;
+                border: 1px solid #aaaaaa;
+            }
+        """)
         self.flat_fading_selection.addItems(["Select Fading Type", "Rician", "Rayleigh"])
         self.flat_fading_selection.setFont(font)
         self.flat_fading_selection.currentTextChanged.connect(self.handle_flat_fading_selection)
@@ -327,7 +329,7 @@ class DemodulationDialog(QDialog):
         flat_fading_widget.setLayout(flat_fading_layout)
         flat_fading_widget.hide()  # Hide until Flat Fading is selected
         self.conditional_inputs["Flat Fading"] = flat_fading_widget
-        self.main_layout.addWidget(flat_fading_widget)
+        self.scroll_layout.addWidget(flat_fading_widget)
 
         # Freq Drift Input
         self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/s)")
@@ -338,10 +340,13 @@ class DemodulationDialog(QDialog):
         # Delay Input
         self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples)")
 
-        # Add all conditional inputs to the main layout
+        # Add all conditional inputs to the scroll layout
         for widget in self.conditional_inputs.values():
-            self.main_layout.addWidget(widget)
+            self.scroll_layout.addWidget(widget)
             widget.hide()
+
+        # Add scrollable area to the main layout
+        self.main_layout.addWidget(self.scroll_area)
 
         # Bit Rate Section
         bitrate_layout = QHBoxLayout()
@@ -355,6 +360,7 @@ class DemodulationDialog(QDialog):
         bitrate_layout.addStretch()
         self.main_layout.addLayout(bitrate_layout)
 
+        """All Demodulation Modes"""
         # Demodulation Modes Section
         demodulation_layout = QVBoxLayout()
         demodulation_mode_label = QLabel("Demodulation Mode:", font=font)
@@ -400,7 +406,6 @@ class DemodulationDialog(QDialog):
         self.run_demod_button = QPushButton("Run Demodulation", self)
         self.run_demod_button.setFont(font)
         self.run_demod_button.setFixedSize(300, 50)
-        #self.run_demod_button.clicked.connect(self.run_demodulation)  # Replace with your demodulation logic
         self.main_layout.addWidget(self.run_demod_button, alignment=Qt.AlignCenter)
 
         # Output Display (Terminal-like)
@@ -410,8 +415,9 @@ class DemodulationDialog(QDialog):
         self.output_display.setFixedHeight(200)
         self.main_layout.addWidget(self.output_display)
 
+
     def create_input_layout(self, label_text, placeholder_text):
-        """Helper to create labeled input layout."""
+        
         layout = QHBoxLayout()
         label = QLabel(label_text)
         label.setFont(QFont("SF Pro", 10))
@@ -426,6 +432,7 @@ class DemodulationDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
+    #toggling state
     def toggle_channel_button(self, channel_name):
         """Toggle the state of a channel button."""
         button = self.channel_buttons[channel_name]
@@ -442,16 +449,18 @@ class DemodulationDialog(QDialog):
             self.display_message(f"{channel_name} selected")
             self.conditional_inputs[channel_name].show()
 
+    #K factor input
     def handle_flat_fading_selection(self, selection):
         """Handle the fading type selection."""
         if selection == "Rician":
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
-
+    
     def display_message(self, message):
         """Append a message to the output display."""
         self.output_display.append(message)
+
 
 # Main Application Window
 class MainWindow(QMainWindow):
