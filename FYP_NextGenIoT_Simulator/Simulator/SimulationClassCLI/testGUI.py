@@ -267,7 +267,7 @@ class DemodulationDialog(QDialog):
         channel_mode_buttons_layout = QHBoxLayout()
         self.channel_buttons = {
             "AWGN": QPushButton("AWGN", self),
-            "Flat Fading": QPushButton("Flat Fading", self),
+            "Fading": QPushButton("Fading", self),
             "Freq Drift": QPushButton("Freq Drift", self),
             "Freq Offset": QPushButton("Freq Offset", self),
             "Delay": QPushButton("Delay", self)
@@ -303,30 +303,30 @@ class DemodulationDialog(QDialog):
         # SNR Input for AWGN
         self.conditional_inputs["AWGN"] = self.create_input_layout("SNR of channel:", "Enter SNR (dB)")
 
-        # Flat Fading Inputs
-        flat_fading_layout = QVBoxLayout()
-        self.flat_fading_selection = QComboBox(self)
-        self.flat_fading_selection.setStyleSheet("""
+        # Fading Inputs
+        fading_layout = QVBoxLayout()
+        self.fading_selection = QComboBox(self)
+        self.fading_selection.setStyleSheet("""
             QComboBox {
                 background-color: #ffffff;
                 color: #000000;
                 border: 1px solid #aaaaaa;
             }
         """)
-        self.flat_fading_selection.addItems(["Select Fading Type", "Rician", "Rayleigh"])
-        self.flat_fading_selection.setFont(font)
-        self.flat_fading_selection.currentTextChanged.connect(self.handle_flat_fading_selection)
-        flat_fading_layout.addWidget(self.flat_fading_selection)
+        self.fading_selection.addItems(["Select Fading Type", "Rician", "Rayleigh"])
+        self.fading_selection.setFont(font)
+        self.fading_selection.currentTextChanged.connect(self.handle_fading_selection)
+        fading_layout.addWidget(self.fading_selection)
 
         self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor")
         self.rician_input_layout.hide()  # Hidden until "Rician" is selected
-        flat_fading_layout.addWidget(self.rician_input_layout)
+        fading_layout.addWidget(self.rician_input_layout)
 
-        flat_fading_widget = QWidget()
-        flat_fading_widget.setLayout(flat_fading_layout)
-        flat_fading_widget.hide()  # Hide until Flat Fading is selected
-        self.conditional_inputs["Flat Fading"] = flat_fading_widget
-        self.scroll_layout.addWidget(flat_fading_widget)
+        fading_widget = QWidget()
+        fading_widget.setLayout(fading_layout)
+        fading_widget.hide()  # Hide until Fading is selected
+        self.conditional_inputs["Fading"] = fading_widget
+        self.scroll_layout.addWidget(fading_widget)
 
         # Freq Drift Input
         self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/s)")
@@ -447,7 +447,7 @@ class DemodulationDialog(QDialog):
             self.conditional_inputs[channel_name].show()
 
     #K factor input
-    def handle_flat_fading_selection(self, selection):
+    def handle_fading_selection(self, selection):
         """Handle the fading type selection."""
         if selection == "Rician":
             self.rician_input_layout.show()
