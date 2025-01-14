@@ -36,7 +36,7 @@ with open('RQAM64.pkl', 'wb') as f:
 with open('QAM64.pkl', 'wb') as f:
     pickle.dump(QAM64, f)
 
-with open('NQAM64.pkl', 'rb') as f:
+with open('QAM64.pkl', 'rb') as f:
     QAM64_r = pickle.load(f)
 
 for i in QAM64_r.items():
