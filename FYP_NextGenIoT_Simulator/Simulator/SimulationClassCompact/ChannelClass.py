@@ -71,7 +71,9 @@ class SimpleFlatFadingChannel:
         
         if self.type == "rayleigh":
             # Diffuse component (Rayleigh fading)
-            h = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(2)
+            real = normal(0, 1, size=signal.shape)
+            imag = normal(0, 1, size=signal.shape)
+            h = sqrt(real**2 + imag**2) / sqrt(2)
                 
         elif self.type == "rician":
             # Line-of-sight (LOS) component
