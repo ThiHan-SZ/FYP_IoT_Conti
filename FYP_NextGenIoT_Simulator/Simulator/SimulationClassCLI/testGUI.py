@@ -329,13 +329,13 @@ class DemodulationDialog(QDialog):
         self.scroll_layout.addWidget(fading_widget)
 
         # Freq Drift Input
-        self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/s)")
+        self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/sample)")
 
         # Freq Offset Input
         self.conditional_inputs["Freq Offset"] = self.create_input_layout("Freq Offset:", "Enter freq offset (Hz)")
 
         # Delay Input
-        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples)")
+        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples fraction)")
 
         # Add all conditional inputs to the scroll layout
         for widget in self.conditional_inputs.values():
