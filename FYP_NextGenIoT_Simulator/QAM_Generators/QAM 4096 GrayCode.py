@@ -36,7 +36,7 @@ with open('RQAM4096.pkl', 'wb') as f:
 with open('QAM4096.pkl', 'wb') as f:
     pickle.dump(QAM4096, f)
 
-with open('NQAM4096.pkl', 'rb') as f:
+with open('QAM4096.pkl', 'rb') as f:
     QAM4096_r = pickle.load(f)
 
 for i in QAM4096_r.items():
