@@ -16,17 +16,17 @@ def main():
 
     with open('FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt', 'r') as file:
         message = file.read()[:5000]
-
+    
     bitstream = modulator.msgchar2bit(message)
 
     modulator.IQ_Return = False
 
     _, modulated_signal = modulator.modulate(bitstream)
 
-    channel = SimpleGWNChannel_dB(10)
-    noisy_modulated = channel.add_noise(modulated_signal)
+    '''channel = SimpleGWNChannel_dB(10)
+    noisy_modulated = channel.add_noise(modulated_signal)'''
 
-    demodulated_signal = demodulator.demodulate(noisy_modulated)
+    demodulated_signal = demodulator.demodulate(modulated_signal)
 
     samples_per_symbol = demodulator.samples_per_symbol
     symbol_period = demodulator.symbol_period
