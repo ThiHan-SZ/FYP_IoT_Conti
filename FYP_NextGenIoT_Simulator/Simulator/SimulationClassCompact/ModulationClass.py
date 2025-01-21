@@ -193,7 +193,7 @@ class Modulator:
         mixed = I_FC + Q_FC
 
         if self.IQ_Return == True:
-            return t_Shaped_Pulse, mixed, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
+            return t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
         
         return t_Shaped_Pulse, mixed
 
