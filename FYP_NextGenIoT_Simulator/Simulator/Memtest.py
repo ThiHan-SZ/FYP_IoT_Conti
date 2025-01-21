@@ -89,13 +89,13 @@ def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed
         ax[2,1].set_xlabel("Frequency (Hz)")
 
 modulation_modes = ['BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096']
-mode = modulation_modes[2]
+mode = modulation_modes[1]
 modulator = Modulator(mode, 16000, 200000)
 
 modulator.IQ_Return = True
 
 '''
-with open(rf'FYP_NextGenIoT_Simulator\TestcaseFiles\TinySpeare.txt','r') as file:
+with open(rf'FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt','r') as file:
     message = file.read()[:15000]
 '''
 message = "I Love Gaming!"
