@@ -102,13 +102,13 @@ message = "I Love Gaming!"
 bitstream = modulator.msgchar2bit(message)
 
 
-import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + 'MiB')  # in MiB 
+import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + ' MiB')  # in MiB 
 
 t_Shaped_Pulse, modulated_signal, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay = modulator.modulate(bitstream)
 
 plot_IQ_internal(modulator, t_Shaped_Pulse, modulated_signal, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay)
 
-import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + 'MiB')  # in MiB 
+import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + ' MiB')  # in MiB 
 
 plt.show()
 
