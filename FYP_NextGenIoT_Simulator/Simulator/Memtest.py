@@ -1,9 +1,14 @@
+from SimulationClassCompact.ModulationClassConvMethod import Modulator as ModulatorConv
 from SimulationClassCompact.ModulationClass import Modulator
+
 from SimulationClassCompact.DemodulationClass import Demodulator
 from SimulationClassCompact.ChannelClass import *
 
 import matplotlib.pyplot as plt
 import numpy as np
+import timeit
+
+from memory_profiler import memory_usage
 
 def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay):
         fig, ax = plt.subplots(3, 2, constrained_layout=True)
@@ -88,29 +93,49 @@ def plot_IQ_internal(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed
         ax[2,1].set_ylabel("Magnitude")
         ax[2,1].set_xlabel("Frequency (Hz)")
 
+
 modulation_modes = ['BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096']
 mode = modulation_modes[1]
 modulator = Modulator(mode, 16000, 200000)
+modulatorconv = ModulatorConv(mode, 16000, 200000)
 
-modulator.IQ_Return = True
+modulator.IQ_Return = False
+modulatorconv.IQ_Return = False
 
-'''
+
 with open(rf'FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt','r') as file:
-    message = file.read()[:15000]
-'''
-message = "I Love Gaming!"
+    message = file.read()[:10000]
+
+#message = "I Love Gaming!"
 bitstream = modulator.msgchar2bit(message)
 
+def modulate_conv(bitstream):
+    t, modulated_signal = modulatorconv.modulate(bitstream)
+    return t, modulated_signal
 
-import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + ' MiB')  # in MiB 
+def modulate(bitstream):
+    t, modulated_signal = modulator.modulate(bitstream)
+    return t, modulated_signal
 
-t_Shaped_Pulse, modulated_signal, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay = modulator.modulate(bitstream)
+norm = lambda: modulate(bitstream)
+conv = lambda: modulate_conv(bitstream)
 
-plot_IQ_internal(modulator, t_Shaped_Pulse, modulated_signal, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay)
+timenorm = timeit.timeit(norm, number=100)
+timeconv = timeit.timeit(conv, number=100)
 
-import os, psutil; print(str(psutil.Process(os.getpid()).memory_info().rss / 1024 ** 2) + ' MiB')  # in MiB 
+memnorm = memory_usage(norm, max_usage=True)
+memconv = memory_usage(conv, max_usage=True)
+
+print(f"Normal Execution Time: {timenorm:.4f} seconds")
+print(f"Convolve Execution Time: {timeconv:.4f} seconds")
+
+print(f"Normal Memory Usage: {memnorm:.4f} bytes")
+print(f"Convolve Memory Usage: {memconv:.4f} bytes")
+
+if np.allclose(norm[1], conv[1], atol=1e-6, rtol=1e-3):
+    print("Both methods produce the same output within the threshold")
+else:
+    print("Both methods do not produce the same output within the threshold")
+    
 
 plt.show()
-
-
-
