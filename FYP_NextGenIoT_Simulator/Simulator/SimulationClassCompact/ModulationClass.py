@@ -190,12 +190,10 @@ class Modulator:
         I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
         Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
 
-        mixed = I_FC + Q_FC
-
         if self.IQ_Return == True:
-            return t_Shaped_Pulse, mixed, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
+            return t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
         
-        return t_Shaped_Pulse, mixed
+        return t_Shaped_Pulse, I_FC + Q_FC
 
     def save(self, filename, modulated_signal):
         '''

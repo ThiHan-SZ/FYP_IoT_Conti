@@ -73,7 +73,7 @@ class Modulator:
 
     def qam_modulation(self, bitstr):
 
-        with open(rf'QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
+        with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
         bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
