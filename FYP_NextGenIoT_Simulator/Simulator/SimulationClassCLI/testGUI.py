@@ -3,10 +3,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, 
     QWidget,QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, 
-    QMessageBox, QFileDialog,QScrollArea,QComboBox
+    QMessageBox, QFileDialog,QScrollArea,QComboBox,QGridLayout
 )
-from PyQt5.QtCore import Qt
+
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QIcon
 
 from testmodulator import Modulator
 from testdemodulator import Demodulator
@@ -27,7 +29,6 @@ class GraphDialog(QDialog):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
-# Dialog for Modulation
 class ModulationDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -231,6 +232,7 @@ class ModulationDialog(QDialog):
         self.display_message("Simulation completed successfully.")
 
 class DemodulationDialog(QDialog):
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("De-Modulation")
@@ -458,71 +460,215 @@ class DemodulationDialog(QDialog):
         """Append a message to the output display."""
         self.output_display.append(message)
 
+class SNRBERDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SNR BER")  # Set the dialog title
+        self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
 
-# Main Application Window
+        ##### Auxillary Variables #####
+        self.plot_iq = False
+        self.save_signal = False
+
+        # Apply dark theme styling for the dialog
+        self.setStyleSheet("""
+            QDialog { background-color: #2e2e2e; color: #ffffff; }
+            QLabel, QLineEdit, QPushButton, QTextEdit { color: #ffffff; }
+            QLineEdit { background-color: #3e3e3e; padding: 5px; border-radius: 5px; }
+            QTextEdit { background-color: #3e3e3e; padding: 10px; }
+            QPushButton {
+                background-color: #4e4e4e; 
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QPushButton:hover { background-color: #5e5e5e; }
+            QCheckBox { color: #ffffff; }
+        """)
+
+        font = QFont("SF Pro", 10)  # Default font for the GUI elements
+
+        # Main layout of the dialog
+
+class EyediagDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Eye Diagram")  # Set the dialog title
+        self.setGeometry(100, 100, 1200, 800)  # Set the size of the dialog window
+
+        ##### Auxillary Variables #####
+        self.plot_iq = False
+        self.save_signal = False
+
+        # Apply dark theme styling for the dialog
+        self.setStyleSheet("""
+            QDialog { background-color: #2e2e2e; color: #ffffff; }
+            QLabel, QLineEdit, QPushButton, QTextEdit { color: #ffffff; }
+            QLineEdit { background-color: #3e3e3e; padding: 5px; border-radius: 5px; }
+            QTextEdit { background-color: #3e3e3e; padding: 10px; }
+            QPushButton {
+                background-color: #4e4e4e; 
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QPushButton:hover { background-color: #5e5e5e; }
+            QCheckBox { color: #ffffff; }
+        """)
+
+        font = QFont("SF Pro", 10)  # Default font for the GUI elements
+
+        # Main layout of the dialog
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Wireless Comms SimTool")  
-        self.setGeometry(0, 0, 1200, 800)  # Set size 
+        self.setWindowTitle("Continental Wireless Comms SimTool")
+        self.setGeometry(0, 0, 1200, 1200)
+        self.setWindowIcon(QIcon(r"GUIAssets\continental-logo-black-jumping-horse.png"))
 
-        # Dark theme 
+        # Dark theme styling
         self.setStyleSheet("""
             QMainWindow { background-color: #2e2e2e; color: #ffffff; }
+            QLabel { color: #ffffff; font-weight: bold; font-size: 30px; }
             QPushButton { 
                 background-color: #4e4e4e; 
-                border-radius: 5px; 
-                padding: 15px;
-                color: #ffffff;
+                border-radius: 10px; 
+                color: #ffffff; 
+                padding: 20px; 
+                font-size: 20px; 
+                font-weight: bold; 
+                text-align: center;
             }
             QPushButton:hover { background-color: #5e5e5e; }
         """)
 
-        #setting fonts and layout
-        font = QFont("SF Pro", 12, QFont.Bold)
-        central_widget = QWidget()
-        main_layout = QVBoxLayout()
+        # Fonts
+        header_font = QFont("SF Pro", 30, QFont.Bold)
+        button_font = QFont("SF Pro", 18)
 
-        # Modulation Button
+        # Central widget
+        central_widget = QWidget()
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setAlignment(Qt.AlignTop)
+
+        # SDR Mode Section
+        sdr_label = QLabel("SDR MODE")
+        sdr_label.setFont(header_font)
+        sdr_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(sdr_label)
+
+        # Modulator and Demodulator Buttons
+        sdr_layout = QHBoxLayout()
         self.mod_button = QPushButton("Modulator", self)
-        self.mod_button.setFont(font)
-        self.mod_button.setFixedSize(1000, 80)
+        self.mod_button.setFont(button_font)
+        self.mod_button.setIcon(QIcon(r"GUIAssets/mod_icon.png"))
+        self.mod_button.setIconSize(QSize(250, 250))
+        self.mod_button.setFixedSize(600, 600)
+        self.mod_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 30px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
         self.mod_button.clicked.connect(self.open_modulation_dialog)
 
-        #  DeModulation Button
         self.demod_button = QPushButton("Demodulator", self)
-        self.demod_button.setFont(font)
-        self.demod_button.setFixedSize(1000, 80)
+        self.demod_button.setFont(button_font)
+        self.demod_button.setIcon(QIcon(r"GUIAssets/demod_icon.png"))
+        self.demod_button.setIconSize(QSize(250, 250))
+        self.demod_button.setFixedSize(600, 600)
+        self.demod_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 30px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
         self.demod_button.clicked.connect(self.open_demodulation_dialog)
-        
-        # Add buttons to the main layout
-        main_layout.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.mod_button)
-        main_layout.addSpacing(20)
-        main_layout.addWidget(self.demod_button)
 
-        central_widget.setLayout(main_layout)
+        sdr_layout.addWidget(self.mod_button)
+        sdr_layout.addSpacing(50)
+        sdr_layout.addWidget(self.demod_button)
+        main_layout.addLayout(sdr_layout)
+
+        # Performance Insights Section Header
+        perf_label = QLabel("PERFORMANCE INSIGHTS")
+        perf_label.setFont(header_font)
+        perf_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(perf_label)
+
+        # SNR BER and Eye Diagram Buttons
+        perf_layout = QHBoxLayout()
+        self.snrber_button = QPushButton("  SNR BER", self)
+        self.snrber_button.setFont(button_font)
+        self.snrber_button.setIcon(QIcon(r"GUIAssets/snr_icon.png"))
+        self.snrber_button.setIconSize(QSize(250, 250))
+        self.snrber_button.setFixedSize(600, 600)
+        self.snrber_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 30px; 
+                font-weight: bold;
+            }
+        """)
+        self.snrber_button.clicked.connect(self.open_snrber_dialog)
+
+        self.eyediag_button = QPushButton("Eye Diagram", self)
+        self.eyediag_button.setFont(button_font)
+        self.eyediag_button.setIcon(QIcon(r"GUIAssets/eye_icon.png"))
+        self.eyediag_button.setIconSize(QSize(250, 250))
+        self.eyediag_button.setFixedSize(600, 600)
+        self.eyediag_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 30px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
+        self.eyediag_button.clicked.connect(self.open_eyediag_dialog)
+
+        perf_layout.addWidget(self.snrber_button)
+        perf_layout.addSpacing(50)
+        perf_layout.addWidget(self.eyediag_button)
+        main_layout.addLayout(perf_layout)
+
+        # Set central widget
         self.setCentralWidget(central_widget)
 
-        self.dialog = None  # Store the dialog instance
+        self.dialog = None  # Dialog instance tracker
 
     def open_modulation_dialog(self):
-        """Open the modulation dialog."""
-        if self.dialog is None:  # Ensure only one dialog instance
+        if self.dialog is None:
             self.dialog = ModulationDialog()
             self.dialog.finished.connect(self.on_dialog_closed)
             self.dialog.show()
 
     def open_demodulation_dialog(self):
-        """Open the demodulation dialog."""
-        if self.dialog is None:  # Ensure only one dialog instance
+        if self.dialog is None:
             self.dialog = DemodulationDialog()
             self.dialog.finished.connect(self.on_dialog_closed)
-            self.dialog.show()        
+            self.dialog.show()
+
+    def open_snrber_dialog(self):
+        if self.dialog is None:
+            self.dialog = SNRBERDialog()
+            self.dialog.finished.connect(self.on_dialog_closed)
+            self.dialog.show()
+
+    def open_eyediag_dialog(self):
+        if self.dialog is None:
+            self.dialog = EyediagDialog()
+            self.dialog.finished.connect(self.on_dialog_closed)
+            self.dialog.show()
 
     def on_dialog_closed(self):
-        """Handle dialog closure."""
-        self.dialog = None  # Reset the dialog reference
+        """Reset dialog reference when closed."""
+        self.dialog = None
+
 
 # Application Entry Point
 if __name__ == "__main__":
@@ -530,3 +676,4 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
+
