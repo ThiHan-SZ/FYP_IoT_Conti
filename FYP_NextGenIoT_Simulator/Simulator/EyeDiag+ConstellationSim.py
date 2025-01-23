@@ -58,7 +58,7 @@ def main():
     demodulator = Demodulator(modulation_mode, bit_rate, carrier_frequency)
 
     with open('FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt', 'r') as file:
-        message = file.read()[:15000]
+        message = file.read()[:1000]
 
     bitstream = modulator.msgchar2bit(message)
 
