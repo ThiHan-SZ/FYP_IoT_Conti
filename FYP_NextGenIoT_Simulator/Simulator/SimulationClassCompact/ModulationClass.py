@@ -2,8 +2,6 @@ import commpy.filters
 from scipy.io import wavfile as wav
 import numpy as np
 import scipy.signal as sig
-from scipy.signal import fftconvolve
-from scipy.sparse import csr_matrix
 import pickle
 import commpy
 
@@ -172,31 +170,39 @@ class Modulator:
 
         samples_per_symbol = int(self.symbol_period * self.sampling_rate)
         RRC_delay = 3 * self.symbol_period
-
+        
         # Simulated SRRC filter and pulse shaping (replace with actual filter for real use)
         _, rrc = commpy.filters.rrcosfilter(
-            N=int(2 * self.sampling_rate * RRC_delay),
+            N=int(2*self.sampling_rate*RRC_delay),
             alpha=0.35,
-            Ts=self.symbol_period,
+            Ts=self.symbol_period, 
             Fs=self.sampling_rate
         )
+        
         shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
+        
+        impulses = I + 1j * Q
 
-        # Sparse Dirac comb construction
-        dirac_indices = np.arange(0, len(I) * samples_per_symbol, samples_per_symbol)
-        Dirac_Comb = csr_matrix((I + 1j * Q, (np.zeros_like(dirac_indices), dirac_indices)),
-                                    shape=(1, shaped_pulse_length)).toarray().flatten()
+        # Precompute unique pulse shapes for the LUT
+        unique_impulses, unique_indices = np.unique(impulses, return_inverse=True)
+        pulseLUT = unique_impulses[:, None] * rrc  # Broadcasting over RRC filter
 
-        # Use fftconvolve for pulse shaping
-        Shaped_Pulse = fftconvolve(Dirac_Comb, rrc, mode='full')[:shaped_pulse_length]
+        # Create a sparse Dirac comb using broadcasting
+        dirac_indices = np.arange(len(I)) * samples_per_symbol
+        Dirac_Comb = np.zeros(shaped_pulse_length, dtype=complex)
+        Dirac_Comb[dirac_indices] = impulses
 
-        # Time axis of the shaped pulse
-        t_Mixed_Signal = np.linspace(
-            0, len(Shaped_Pulse) / self.sampling_rate,
-            len(Shaped_Pulse), endpoint=False
-        )
+        # Construct the shaped pulse using broadcasting
+        Shaped_Pulse = np.zeros(shaped_pulse_length, dtype=complex)
 
-        # Upscaling the signal to the carrier frequency
+        # Add contributions from each pulse (broadcast the RRC filter)
+        for idx, impulse_idx in enumerate(unique_indices):
+            start_idx = idx * samples_per_symbol
+            Shaped_Pulse[start_idx:start_idx + len(rrc)] += pulseLUT[impulse_idx]
+
+        t_Mixed_Signal = np.arange(0, len(Shaped_Pulse) / self.sampling_rate, 1 / self.sampling_rate)
+
+        ###Upscaling the signal to the carrier frequency###
         I_processed = Shaped_Pulse.real
         Q_processed = Shaped_Pulse.imag
         I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Mixed_Signal)
