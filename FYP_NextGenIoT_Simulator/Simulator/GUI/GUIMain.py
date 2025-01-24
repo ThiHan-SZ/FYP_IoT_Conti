@@ -9,8 +9,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QIcon
 
-import sys
-sys.path.insert(1, r".\Simulator")
+import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from Pages.ModulatorDialog import ModulationDialog
 from Pages.DemodulatorDialog import DemodulationDialog
