@@ -2,6 +2,8 @@ import commpy.filters
 from scipy.io import wavfile as wav
 import numpy as np
 import scipy.signal as sig
+from scipy.signal import fftconvolve
+from scipy.sparse import csr_matrix
 import pickle
 import commpy
 
@@ -82,7 +84,7 @@ class Modulator:
 
             Returns:
                 tuple: A tuple containing:
-                    t_Shaped_Pulse (np.array): Time axis of the shaped pulse.
+                    t_Mixed_Signal (np.array): Time axis of the shaped pulse.
                     mixed (np.array): Mixed modulated signal with pulse shaping and carrier frequency upconversion.
                 
             If `IQ_Return` is True, the function also returns:
@@ -156,7 +158,7 @@ class Modulator:
 
             Returns:
                 tuple: A tuple containing:
-                    t_Shaped_Pulse (np.array): Time axis of the shaped pulse.
+                    t_Mixed_Signal (np.array): Time axis of the shaped pulse.
                     mixed (np.array): Mixed modulated signal with pulse shaping and carrier frequency upconversion.
                 
             If `IQ_Return` is True, the function also returns:
@@ -172,28 +174,38 @@ class Modulator:
         RRC_delay = 3 * self.symbol_period
 
         # Simulated SRRC filter and pulse shaping (replace with actual filter for real use)
-        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.35,Ts=self.symbol_period, Fs=self.sampling_rate)
+        _, rrc = commpy.filters.rrcosfilter(
+            N=int(2 * self.sampling_rate * RRC_delay),
+            alpha=0.35,
+            Ts=self.symbol_period,
+            Fs=self.sampling_rate
+        )
         shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
-        Shaped_Pulse = np.zeros(shaped_pulse_length, dtype=complex)
-        Dirac_Comb = np.zeros(shaped_pulse_length, dtype=complex)
 
-        for idx, (i_val, q_val) in enumerate(zip(I, Q)):
-            start_idx = idx * samples_per_symbol
-            Shaped_Pulse[start_idx:start_idx + len(rrc)] += (i_val + 1j * q_val) * rrc
-            Dirac_Comb[start_idx] = i_val + 1j * q_val  # Place only at start of each symbol
+        # Sparse Dirac comb construction
+        dirac_indices = np.arange(0, len(I) * samples_per_symbol, samples_per_symbol)
+        Dirac_Comb = csr_matrix((I + 1j * Q, (np.zeros_like(dirac_indices), dirac_indices)),
+                                    shape=(1, shaped_pulse_length)).toarray().flatten()
 
-        t_Shaped_Pulse = np.linspace(0, len(Shaped_Pulse) / self.sampling_rate, len(Shaped_Pulse), endpoint=False)
+        # Use fftconvolve for pulse shaping
+        Shaped_Pulse = fftconvolve(Dirac_Comb, rrc, mode='full')[:shaped_pulse_length]
 
-        ###Upscaling the signal to the carrier frequency###
+        # Time axis of the shaped pulse
+        t_Mixed_Signal = np.linspace(
+            0, len(Shaped_Pulse) / self.sampling_rate,
+            len(Shaped_Pulse), endpoint=False
+        )
+
+        # Upscaling the signal to the carrier frequency
         I_processed = Shaped_Pulse.real
         Q_processed = Shaped_Pulse.imag
-        I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
-        Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Shaped_Pulse)
+        I_FC = I_processed * np.cos(2 * np.pi * self.carrier_freq * t_Mixed_Signal)
+        Q_FC = Q_processed * -np.sin(2 * np.pi * self.carrier_freq * t_Mixed_Signal)
 
         if self.IQ_Return == True:
-            return t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
+            return t_Mixed_Signal, Shaped_Pulse, I_FC, Q_FC, I_processed, Q_processed, Dirac_Comb, RRC_delay
         
-        return t_Shaped_Pulse, I_FC + Q_FC
+        return t_Mixed_Signal, I_FC + Q_FC
 
     def save(self, filename, modulated_signal):
         '''
@@ -220,6 +232,7 @@ class Modulator:
                 t_axis (np.array): Time axis of the modulated signal
         '''
         fig, axs = plt.subplots(2, 1, figsize=(5, 5))
+        fig.suptitle(f'Digital and Modulated Signals: {self.modulation_mode} Signal @ {self.carrier_freq} Hz')
         axs[0].step(x_axis_digital, digital_signal, where='post')
         axs[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
         axs[0].set_title('Digital Signal')
@@ -231,7 +244,7 @@ class Modulator:
 
         return fig
     
-    def IQ_plot(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay): 
+    def IQ_plot(self, t_Mixed_Signal, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay): 
         '''
             Generate the figure for the IQ Detailed plot
 
@@ -246,76 +259,57 @@ class Modulator:
                 RRC_delay (float): Delay due to the Root Raised Cosine Filter.
         '''
         assert self.IQ_Return == True, "IQ_Return must be True to plot I and Q components"
-
-        fig, ax = plt.subplots(3, 2, constrained_layout=True)
-        ax[0,0].plot(t_Shaped_Pulse / self.symbol_period, I_SP, label='$u(t)$')
         
-        # Plot the stems without markers for the real part
+        ###### Figure Setup ######
+        fig, ax = plt.subplots(3, 2, constrained_layout=True)
+        fig.suptitle(f'Modulated Signal Details: {self.modulation_mode} Signal @ {self.carrier_freq} Hz')
+        
+        
+        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x[::], n=len(x))) / len(x))
+        f_spec_x_axis = np.linspace(-self.sampling_rate / 2, self.sampling_rate / 2, len(Shaped_Pulse), endpoint=False)
+
+        freq_range = self.carrier_freq * 2
+        range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
+        
+        f_spec_x_axis = f_spec_x_axis[range_indices]
+        
+        ###### Real Plots ######
+        
+        ### Real part with stems and non-zero markers ###
+        
+        ax[0,0].plot(t_Mixed_Signal / self.symbol_period, I_SP, label='$u(t)$')
+        
         _, stemlines_I_Dirac, baseline_I_Dirac = ax[0,0].stem(
-            (RRC_delay + t_Shaped_Pulse) / self.symbol_period, 
+            (RRC_delay + t_Mixed_Signal) / self.symbol_period, 
             Dirac_Comb.real, 
             linefmt='r-', 
             markerfmt='',
             basefmt='r-'
         )
         baseline_I_Dirac.set_visible(False)
-        plt.setp(stemlines_I_Dirac, 'alpha', 0.5)  # Stem line transparency
+        plt.setp(stemlines_I_Dirac, 'alpha', 0.5)
 
-        # Overlay markers at non-zero positions only
         non_zero_indices_real = np.nonzero(Dirac_Comb.real)[0]
-        non_zero_times_real = (RRC_delay + t_Shaped_Pulse[non_zero_indices_real]) / self.symbol_period
+        non_zero_times_real = (RRC_delay + t_Mixed_Signal[non_zero_indices_real]) / self.symbol_period
         non_zero_values_real = Dirac_Comb.real[non_zero_indices_real]
         ax[0,0].plot(non_zero_times_real, non_zero_values_real, 'ro', alpha=0.75)
 
         ax[0,0].set_title("Real Part")
-
-        # Imaginary part with stems and non-zero markers
-        ax[0,1].plot(t_Shaped_Pulse / self.symbol_period, Q_SP)
-
-        # Plot the stems without markers for the imaginary part
-        _, stemlines_Q_Dirac, baseline_Q_Dirac = ax[0,1].stem(
-            (RRC_delay + t_Shaped_Pulse) / self.symbol_period,
-            Dirac_Comb.imag,
-            linefmt='r-',
-            markerfmt='',
-            basefmt='r-'
-        )
-        baseline_Q_Dirac.set_visible(False)
-        plt.setp(stemlines_Q_Dirac, 'alpha', 0.5)  # Stem line transparency
-
-        # Overlay markers at non-zero positions only
-        non_zero_indices_imag = np.nonzero(Dirac_Comb.imag)[0]
-        non_zero_times_imag = (RRC_delay + t_Shaped_Pulse[non_zero_indices_imag]) / self.symbol_period
-        non_zero_values_imag = Dirac_Comb.imag[non_zero_indices_imag]
-        ax[0,1].plot(non_zero_times_imag, non_zero_values_imag, 'ro', alpha=0.75)
-
-        ax[0,1].set_title("Imaginary Part")
-
-        # Continue with other subplots as usual
-        ax[1,0].plot(t_Shaped_Pulse, I_FC)
-        ax[1,0].plot(t_Shaped_Pulse, I_SP)
+        ax[0,0].set_ylabel("Amplitude")
+        ax[0,0].set_xlabel("Sample Index (T/Ts)")
+        
+        ### Upsampled + Envelope - Real Part of Signal ###
+        
+        ax[1,0].plot(t_Mixed_Signal, I_FC)
+        ax[1,0].plot(t_Mixed_Signal, I_SP)
         ax[1,0].set_title("I Signal")
         ax[1,0].set_ylabel("Amplitude")
-        ax[1,0].set_xlabel("Sample Index (T/Ts)")
+        ax[1,0].set_xlabel("Time (s)")
 
-        ax[1,1].plot(t_Shaped_Pulse, Q_FC)
-        ax[1,1].plot(t_Shaped_Pulse, Q_SP)
-        ax[1,1].set_title("Q Signal")
-        ax[1,1].set_ylabel("Amplitude")
-        ax[1,1].set_xlabel("Sample Index (T/Ts)")
-
-        # Spectrum calculation and plotting remains unchanged
-        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x[::], n=len(x))) / len(x))
-        f_spec_x_axis = np.linspace(-self.sampling_rate / 2, self.sampling_rate / 2, len(Shaped_Pulse), endpoint=False)
-
-        freq_range = self.carrier_freq * 2
-        range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
-
-        f_spec_x_axis = f_spec_x_axis[range_indices]
+        ### Sepctrum Analysis of Real Part of Signal ###
+        
         I_spectrum = spectrum(I_SP)[range_indices]
-        Q_spectrum = spectrum(Q_SP)[range_indices]
         I_FC_spectrum = spectrum(I_FC)[range_indices]
-        Q_FC_spectrum = spectrum(Q_FC)[range_indices]
 
         ax[2,0].plot(f_spec_x_axis, I_spectrum)
         ax[2,0].plot(f_spec_x_axis, I_FC_spectrum)
@@ -323,6 +317,44 @@ class Modulator:
         ax[2,0].set_ylabel("Magnitude")
         ax[2,0].set_xlabel("Frequency (Hz)")
         
+        ###### Imaginary Plots ######
+        
+        ### Imaginary part with stems and non-zero markers ###
+        
+        ax[0,1].plot(t_Mixed_Signal / self.symbol_period, Q_SP, label='$v(t)$')
+
+        _, stemlines_Q_Dirac, baseline_Q_Dirac = ax[0,1].stem(
+            (RRC_delay + t_Mixed_Signal) / self.symbol_period,
+            Dirac_Comb.imag,
+            linefmt='r-',
+            markerfmt='',
+            basefmt='r-'
+        )
+        baseline_Q_Dirac.set_visible(False)
+        plt.setp(stemlines_Q_Dirac, 'alpha', 0.5)  
+
+        non_zero_indices_imag = np.nonzero(Dirac_Comb.imag)[0]
+        non_zero_times_imag = (RRC_delay + t_Mixed_Signal[non_zero_indices_imag]) / self.symbol_period
+        non_zero_values_imag = Dirac_Comb.imag[non_zero_indices_imag]
+        ax[0,1].plot(non_zero_times_imag, non_zero_values_imag, 'ro', alpha=0.75)
+
+        ax[0,1].set_title("Imaginary Part")
+        ax[0,1].set_ylabel("Amplitude")
+        ax[0,1].set_xlabel("Sample Index (T/Ts)")
+
+        ### Upsampled + Envelope - Imaginary Part of Signal ###
+        
+        ax[1,1].plot(t_Mixed_Signal, Q_FC)
+        ax[1,1].plot(t_Mixed_Signal, Q_SP)
+        ax[1,1].set_title("Q Signal")
+        ax[1,1].set_ylabel("Amplitude")
+        ax[1,1].set_xlabel("Time (s)")
+
+        ### Sepctrum Analysis of Imaginary Part of Signal ###
+        
+        Q_spectrum = spectrum(Q_SP)[range_indices]
+        Q_FC_spectrum = spectrum(Q_FC)[range_indices]
+
         ax[2,1].plot(f_spec_x_axis, Q_spectrum)
         ax[2,1].plot(f_spec_x_axis, Q_FC_spectrum)
         ax[2,1].set_title("Q Spectrum")
