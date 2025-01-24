@@ -10,7 +10,7 @@ from SimulationClassCompact.DemodulationClass import Demodulator
 
 out = io.BytesIO()
 
-with Image.open(rf"FYP_NextGenIoT_Simulator\SNR_BER.png") as img:
+with Image.open(rf'FYP_NextGenIoT_Simulator/SNR_BER_Fixed_again_again.png') as img:
     img.save(out, format="png")
 
 image_in_bytes = out.getvalue()
@@ -26,8 +26,10 @@ demodulator = Demodulator(modulation_mode, bit_rate, carrier_frequency)
 
 bitstr = list(encoded_b2)
 print(len(bitstr)/8)
-'''if len(bitstr) % modulator.order != 0:
+
+if len(bitstr) % modulator.order != 0:
     bitstr.extend(['0']*(modulator.order - len(bitstr) % modulator.order))
+    
 bitstr.extend(['0', '0'])
 
 bitstream = bitstr
@@ -38,7 +40,7 @@ demodulated_signal = demodulator.demodulate(modulated_signal)
 
 _, bitarray = demodulator.demapping(demodulated_signal)
 
-decoded_b2 = [int(bitarray[i:i + 8], 2) for i in range(0, len(bitarray), 8)]
+byte_array = bytes(bitarray)
 
 with open(rf"FYP_NextGenIoT_Simulator\SNR_BER_decoded.png", 'wb') as f:
-    f.write(bytes(decoded_b2))'''
+    f.write(byte_array)
