@@ -3,10 +3,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, 
     QWidget,QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, 
-    QMessageBox, QFileDialog,QScrollArea,QComboBox
+    QMessageBox, QFileDialog,QScrollArea,QComboBox,QGridLayout,QDial,QSlider
 )
-from PyQt5.QtCore import Qt
+
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QIcon
 
 from testmodulator import Modulator
 from testdemodulator import Demodulator
@@ -27,7 +29,6 @@ class GraphDialog(QDialog):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
-# Dialog for Modulation
 class ModulationDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -231,6 +232,7 @@ class ModulationDialog(QDialog):
         self.display_message("Simulation completed successfully.")
 
 class DemodulationDialog(QDialog):
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("De-Modulation")
@@ -285,7 +287,6 @@ class DemodulationDialog(QDialog):
         self.main_layout.addLayout(channel_mode_layout)
 
         # Scrollable Conditional Inputs
-        """Scroll Container"""
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
 
@@ -399,6 +400,38 @@ class DemodulationDialog(QDialog):
         demodulation_layout.addLayout(qam_layout)
         self.main_layout.addLayout(demodulation_layout)
 
+        # File Selection Section
+        file_selection_layout = QHBoxLayout()
+        file_label = QLabel("No file selected", self)
+        file_label.setFont(font)
+        file_button = QPushButton("Select File", self)
+        file_button.setFont(font)
+        file_button.setFixedSize(200, 40)
+
+        # file selection logic
+        def select_file():
+            file_dialog = QFileDialog(self)
+            file_path, _ = file_dialog.getOpenFileName(self, "Select a File", "", "All Files (*);;Text Files (*.txt)")
+            #truncate name
+            if file_path:
+                max_length = 60  
+                if len(file_path) > max_length:
+                    truncated_path = f"...{file_path[-max_length:]}"  
+                else:
+                    truncated_path = file_path
+                file_label.setText(truncated_path)
+            else:
+                file_label.setText("No file selected")
+
+
+        file_button.clicked.connect(select_file)
+
+        file_selection_layout.addWidget(file_label)
+        file_selection_layout.addSpacing(20)
+        file_selection_layout.addWidget(file_button)
+        file_selection_layout.addStretch()
+        self.main_layout.addLayout(file_selection_layout)
+
         # Run Demodulation Button
         self.run_demod_button = QPushButton("Run Demodulation", self)
         self.run_demod_button.setFont(font)
@@ -414,7 +447,6 @@ class DemodulationDialog(QDialog):
 
 
     def create_input_layout(self, label_text, placeholder_text):
-        
         layout = QHBoxLayout()
         label = QLabel(label_text)
         label.setFont(QFont("SF Pro", 10))
@@ -431,7 +463,6 @@ class DemodulationDialog(QDialog):
 
     #toggling state
     def toggle_channel_button(self, channel_name):
-        """Toggle the state of a channel button."""
         button = self.channel_buttons[channel_name]
         if button.property("selected") == "true":
             button.setProperty("selected", "false")
@@ -448,81 +479,538 @@ class DemodulationDialog(QDialog):
 
     #K factor input
     def handle_fading_selection(self, selection):
-        """Handle the fading type selection."""
         if selection == "Rician":
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
     
     def display_message(self, message):
+        self.output_display.append(message)
+
+class SNRBERDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("SNR BER")
+        self.setGeometry(100, 100, 1200, 1000)
+
+        # Apply dark theme styling
+        self.setStyleSheet("""
+            QDialog { background-color: #2e2e2e; color: #ffffff; }
+            QLabel, QLineEdit, QPushButton, QTextEdit, QDial { color: #ffffff; }
+            QLineEdit { background-color: #3e3e3e; padding: 5px; border-radius: 5px; }
+            QTextEdit { background-color: #3e3e3e; padding: 10px; color: #ffffff; border: none; }
+            QPushButton {
+                background-color: #4e4e4e; 
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QPushButton:hover { background-color: #5e5e5e; }
+            QPushButton[selected="true"] { background-color: #2b8cff; }
+            QDial { background-color: #3e3e3e; }
+        """)
+
+        font = QFont("SF Pro", 10)
+        self.selected_modulations = set()  
+
+        self.main_layout = QVBoxLayout(self)
+
+        modulation_type_layout = QVBoxLayout()
+        modulation_type_label = QLabel("Modulation Types for SNR BER Test:", font=font)
+        modulation_type_layout.addWidget(modulation_type_label, alignment=Qt.AlignLeft)
+
+        # Buttons for Modulation Types
+        self.modulation_buttons = {
+            "BPSK": QPushButton("BPSK", self),
+            "QPSK": QPushButton("QPSK", self),
+            "QAM16": QPushButton("QAM16", self),
+            "QAM64": QPushButton("QAM64", self),
+            "QAM256": QPushButton("QAM256", self),
+            "QAM1024": QPushButton("QAM1024", self),
+            "QAM4096": QPushButton("QAM4096", self),
+        }
+
+        modulation_buttons_layout = QHBoxLayout()
+        for name, button in self.modulation_buttons.items():
+            button.setFont(font)
+            button.setFixedSize(150, 50)
+            button.setProperty("selected", "false")
+            button.clicked.connect(lambda checked, n=name: self.toggle_modulation_button(n))
+            modulation_buttons_layout.addWidget(button)
+
+        modulation_buttons_layout.addStretch()
+        modulation_type_layout.addLayout(modulation_buttons_layout)
+        self.main_layout.addLayout(modulation_type_layout)
+        self.main_layout.addSpacing(50)
+
+        # Bit Rate and Carrier Frequency Inputs
+        input_layout = QVBoxLayout()
+
+        # Bit Rate Input
+        bitrate_layout = QHBoxLayout()
+        bitrate_label = QLabel("Bit Rate:", font=font)
+        self.bit_rate_input = QLineEdit(self)
+        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
+        self.bit_rate_input.setFont(font)
+        self.bit_rate_input.setFixedWidth(400)
+        bitrate_layout.addWidget(bitrate_label)
+        bitrate_layout.addWidget(self.bit_rate_input)
+        bitrate_layout.addStretch()
+        input_layout.addLayout(bitrate_layout)
+
+        # Carrier Frequency Input
+        carrier_freq_layout = QHBoxLayout()
+        carrier_freq_label = QLabel("Carrier Frequency:", font=font)
+        self.carrier_freq_input = QLineEdit(self)
+        self.carrier_freq_input.setPlaceholderText("Enter carrier frequency (Hz)")
+        self.carrier_freq_input.setFont(font)
+        self.carrier_freq_input.setFixedWidth(400)
+        carrier_freq_layout.addWidget(carrier_freq_label)
+        carrier_freq_layout.addWidget(self.carrier_freq_input)
+        carrier_freq_layout.addStretch()
+        input_layout.addLayout(carrier_freq_layout)
+        self.main_layout.addLayout(input_layout)
+        self.main_layout.addSpacing(50)
+
+        # Replace the QDial section in `SNRBERDialog` with the following:
+        char_input_layout = QVBoxLayout()
+        char_input_label = QLabel("Number of Input Characters:", font=font)
+        char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
+
+        self.char_slider = QSlider(Qt.Horizontal, self)
+        self.char_slider.setRange(1, 100)  #1000 - 100000
+        self.char_slider.setSingleStep(1)
+        self.char_slider.setValue(1) 
+        self.char_slider.setStyleSheet("""
+                QSlider::groove:horizontal {
+                    background: #3e3e3e;
+                    height: 10px;
+                    border-radius: 5px;
+                }
+                QSlider::handle:horizontal {
+                    background: #2b8cff;
+                    width: 20px;
+                    height: 20px;
+                    margin: -5px 0;
+                    border-radius: 10px;
+                }
+                QSlider::sub-page:horizontal {
+                    background: #2b8cff;
+                    border-radius: 5px;
+                }
+            """)
+        self.char_slider.valueChanged.connect(self.update_char_label)
+
+        self.char_label = QLabel("1000", self)
+        self.char_label.setFont(font)
+        self.char_label.setAlignment(Qt.AlignCenter)
+
+        char_input_layout.addWidget(self.char_slider)
+        char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
+        self.main_layout.addLayout(char_input_layout)
+
+
+        # SNR Lower and Upper Bound Inputs
+        snr_input_layout = QVBoxLayout()
+        snr_label = QLabel("SNR Bounds:", font=font)
+        snr_input_layout.addWidget(snr_label, alignment=Qt.AlignLeft)
+
+        # SNR Lower Bound
+        snr_lower_layout = QHBoxLayout()
+        snr_lower_label = QLabel("Lower Bound:", font=font)
+        self.snr_lower_input = QLineEdit(self)
+        self.snr_lower_input.setPlaceholderText("Enter SNR Lower Bound (dB)")
+        self.snr_lower_input.setFont(font)
+        self.snr_lower_input.setFixedWidth(400)
+        snr_lower_layout.addWidget(snr_lower_label)
+        snr_lower_layout.addWidget(self.snr_lower_input)
+        snr_lower_layout.addStretch()
+        snr_input_layout.addLayout(snr_lower_layout)
+
+        # SNR Upper Bound
+        snr_upper_layout = QHBoxLayout()
+        snr_upper_label = QLabel("Upper Bound:", font=font)
+        self.snr_upper_input = QLineEdit(self)
+        self.snr_upper_input.setPlaceholderText("Enter SNR Upper Bound (dB)")
+        self.snr_upper_input.setFont(font)
+        self.snr_upper_input.setFixedWidth(400)
+        snr_upper_layout.addWidget(snr_upper_label)
+        snr_upper_layout.addWidget(self.snr_upper_input)
+        snr_upper_layout.addStretch()
+        snr_input_layout.addLayout(snr_upper_layout)
+
+        self.main_layout.addLayout(snr_input_layout)
+
+        # Add Run Simulation Button
+        self.run_simulation_button = QPushButton("Run Simulation", self)
+        self.run_simulation_button.setFont(font)
+        self.run_simulation_button.setFixedSize(300, 50)
+        self.run_simulation_button.clicked.connect(self.run_simulation)
+        self.main_layout.addWidget(self.run_simulation_button, alignment=Qt.AlignCenter)
+
+        # Output Display (Terminal-like)
+        self.output_display = QTextEdit(self)
+        self.output_display.setFont(font)
+        self.output_display.setReadOnly(True)
+        self.output_display.setFixedHeight(200)
+        self.output_display.setStyleSheet("""
+            QTextEdit {
+                background-color: #3e3e3e; 
+                color: #ffffff; 
+                border: none; 
+                padding: 10px;
+            }
+        """)
+        self.main_layout.addWidget(self.output_display)
+
+    def toggle_modulation_button(self, mod_name):
+        """Toggle the state of a modulation button."""
+        button = self.modulation_buttons[mod_name]
+        if button.property("selected") == "true":
+            button.setProperty("selected", "false")
+            button.setStyle(button.style())
+            self.selected_modulations.discard(mod_name)
+            self.display_message(f"{mod_name} deselected")
+        else:
+            button.setProperty("selected", "true")
+            button.setStyle(button.style())
+            self.selected_modulations.add(mod_name)
+            self.display_message(f"{mod_name} selected")
+
+    def update_char_label(self, value):
+            """Map slider value to increments of 1000"""
+            char_count = value * 1000  
+            self.char_label.setText(f"{char_count:,}") 
+
+    def run_simulation(self):
+        self.display_message("Simulation started")
+
+    def display_message(self, message):
+        self.output_display.append(message)    
+
+class EyediagDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Eye Diagram")
+        self.setGeometry(100, 100, 1200, 800)
+
+        # Apply dark theme styling
+        self.setStyleSheet("""
+            QDialog { background-color: #2e2e2e; color: #ffffff; }
+            QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox { color: #ffffff; }
+            QLineEdit { background-color: #3e3e3e; padding: 5px; border-radius: 5px; }
+            QTextEdit { background-color: #3e3e3e; padding: 10px; }
+            QPushButton {
+                background-color: #4e4e4e; 
+                border-radius: 5px;
+                padding: 10px;
+            }
+            QPushButton:hover { background-color: #5e5e5e; }
+            QPushButton[selected="true"] { background-color: #2b8cff; }
+            QCheckBox { color: #ffffff; }
+        """)
+
+        font = QFont("SF Pro", 10)
+        self.selected_modulations = set()  
+
+        self.main_layout = QVBoxLayout(self)
+        modulation_type_layout = QVBoxLayout()
+
+        # Buttons for Modulation Types
+        self.modulation_buttons = {
+            "BPSK": QPushButton("BPSK", self),
+            "QPSK": QPushButton("QPSK", self),
+            "QAM16": QPushButton("QAM16", self),
+            "QAM64": QPushButton("QAM64", self),
+            "QAM256": QPushButton("QAM256", self),
+            "QAM1024": QPushButton("QAM1024", self),
+            "QAM4096": QPushButton("QAM4096", self),
+        }
+
+        modulation_buttons_layout = QHBoxLayout()
+        for mode, button in self.modulation_buttons.items():
+            button.setFont(font)
+            button.setFixedSize(150, 50)
+            button.clicked.connect(lambda checked, m=mode: self.select_modulation_mode(m))
+            button.setProperty("selected", "false")
+            modulation_buttons_layout.addWidget(button)
+
+        modulation_buttons_layout.addStretch()
+        modulation_type_layout.addLayout(modulation_buttons_layout)
+        self.main_layout.addLayout(modulation_type_layout)
+        self.main_layout.addSpacing(50)
+
+        # Bit Rate and Carrier Frequency Inputs
+        input_layout = QVBoxLayout()
+
+        # Bit Rate Input
+        bitrate_layout = QHBoxLayout()
+        bitrate_label = QLabel("Bit Rate:", font=font)
+        self.bit_rate_input = QLineEdit(self)
+        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
+        self.bit_rate_input.setFont(font)
+        self.bit_rate_input.setFixedWidth(400)
+        bitrate_layout.addWidget(bitrate_label)
+        bitrate_layout.addWidget(self.bit_rate_input)
+        bitrate_layout.addStretch()
+        input_layout.addLayout(bitrate_layout)
+
+        # Carrier Frequency Input
+        carrier_freq_layout = QHBoxLayout()
+        carrier_freq_label = QLabel("Carrier Frequency:", font=font)
+        self.carrier_freq_input = QLineEdit(self)
+        self.carrier_freq_input.setPlaceholderText("Enter carrier frequency (Hz)")
+        self.carrier_freq_input.setFont(font)
+        self.carrier_freq_input.setFixedWidth(400)
+        carrier_freq_layout.addWidget(carrier_freq_label)
+        carrier_freq_layout.addWidget(self.carrier_freq_input)
+        carrier_freq_layout.addStretch()
+        input_layout.addLayout(carrier_freq_layout)
+        self.main_layout.addLayout(input_layout)
+        self.main_layout.addSpacing(50)
+
+        # Slider for Number of Input Characters
+        char_input_layout = QVBoxLayout()
+        char_input_label = QLabel("Number of Input Characters:", font=font)
+        char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
+
+        self.char_slider = QSlider(Qt.Horizontal, self)
+        self.char_slider.setRange(1, 100)  # Range mapped to 1000 - 100000
+        self.char_slider.setSingleStep(1)
+        self.char_slider.setValue(1)  # Default value corresponds to 1000
+        self.char_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                background: #3e3e3e;
+                height: 10px;
+                border-radius: 5px;
+            }
+            QSlider::handle:horizontal {
+                background: #2b8cff;
+                width: 20px;
+                height: 20px;
+                margin: -5px 0;
+                border-radius: 10px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #2b8cff;
+                border-radius: 5px;
+            }
+        """)
+        self.char_slider.valueChanged.connect(self.update_char_label)
+
+        self.char_label = QLabel("1000", self)
+        self.char_label.setFont(font)
+        self.char_label.setAlignment(Qt.AlignCenter)
+
+        char_input_layout.addWidget(self.char_slider)
+        char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
+        self.main_layout.addLayout(char_input_layout)
+
+        # Constellation Plot Checkbox
+        self.constellation_checkbox = QCheckBox("Enable Constellation Plot", self)
+        self.constellation_checkbox.setFont(font)
+        self.main_layout.addWidget(self.constellation_checkbox)
+
+        # Run Button
+        self.run_button = QPushButton("Run Eye Diagram Simulation", self)
+        self.run_button.setFont(font)
+        self.run_button.setFixedSize(500, 50)
+        self.main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
+
+        # Output Display (Terminal-like)
+        self.output_display = QTextEdit(self)
+        self.output_display.setFont(font)
+        self.output_display.setReadOnly(True)
+        self.output_display.setFixedHeight(200)
+        self.output_display.setStyleSheet("""
+            QTextEdit {
+                background-color: #3e3e3e;
+                color: #ffffff;
+                border-radius: 5px;
+            }
+        """)
+        self.main_layout.addWidget(self.output_display)
+
+    def select_modulation_button(self, mode):
+        """Ensure only one modulation button is selected at a time."""
+        # Reset all buttons
+        for name, button in self.modulation_buttons.items():
+            button.setProperty("selected", "false")
+            button.setStyle(button.style())
+
+        # Highlight the selected button
+        button = self.modulation_buttons[mode]
+        button.setProperty("selected", "true")
+        button.setStyle(button.style())
+        self.output_display.append(f"{mode} selected")
+
+    def update_char_label(self, value):
+        """Update the label for the number of input characters."""
+        char_count = value * 1000  # Map range 1-100 to 1000-100000
+        self.char_label.setText(f"{char_count:,}")
+
+    def display_message(self, message):
         """Append a message to the output display."""
         self.output_display.append(message)
 
+    def select_modulation_mode(self, mode):
+        """Set selected modulation mode and update the display."""
+        self.selected_mode = mode
+        self.display_message(f"Selected Modulation Mode: {self.selected_mode}")
 
-# Main Application Window
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Wireless Comms SimTool")  
-        self.setGeometry(0, 0, 1200, 800)  # Set size 
+        self.setWindowTitle("Continental Wireless Comms SimTool")
+        self.setGeometry(0, 0, 1200, 1200)
+        self.setWindowIcon(QIcon(r"GUIAssets\continental-logo-black-jumping-horse.png"))
 
-        # Dark theme 
+        # Dark theme styling
         self.setStyleSheet("""
             QMainWindow { background-color: #2e2e2e; color: #ffffff; }
+            QLabel { color: #ffffff; font-weight: bold; font-size: 30px; }
             QPushButton { 
                 background-color: #4e4e4e; 
-                border-radius: 5px; 
-                padding: 15px;
-                color: #ffffff;
+                border-radius: 10px; 
+                color: #ffffff; 
+                padding: 20px; 
+                font-size: 20px; 
+                font-weight: bold; 
+                text-align: center;
             }
             QPushButton:hover { background-color: #5e5e5e; }
         """)
 
-        #setting fonts and layout
-        font = QFont("SF Pro", 12, QFont.Bold)
-        central_widget = QWidget()
-        main_layout = QVBoxLayout()
+        # Fonts
+        header_font = QFont("SF Pro", 30, QFont.Bold)
+        button_font = QFont("SF Pro", 18)
 
-        # Modulation Button
-        self.mod_button = QPushButton("Modulator", self)
-        self.mod_button.setFont(font)
-        self.mod_button.setFixedSize(1000, 80)
+        # Central widget
+        central_widget = QWidget()
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setAlignment(Qt.AlignTop)
+
+        # SDR Mode Section
+        main_layout.addSpacing(50)
+        sdr_label = QLabel("SDR MODE")
+        sdr_label.setFont(header_font)
+        sdr_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(sdr_label)
+
+        # Modulator and Demodulator Buttons
+        sdr_layout = QHBoxLayout()
+        self.mod_button = QPushButton("  Modulator", self)
+        self.mod_button.setFont(button_font)
+        self.mod_button.setIcon(QIcon(r"GUIAssets/mod_icon.png"))
+        self.mod_button.setIconSize(QSize(250, 250))
+        self.mod_button.setFixedSize(600, 500)
+        self.mod_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 36px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
         self.mod_button.clicked.connect(self.open_modulation_dialog)
 
-        #  DeModulation Button
-        self.demod_button = QPushButton("Demodulator", self)
-        self.demod_button.setFont(font)
-        self.demod_button.setFixedSize(1000, 80)
+        self.demod_button = QPushButton("  Demodulator", self)
+        self.demod_button.setFont(button_font)
+        self.demod_button.setIcon(QIcon(r"GUIAssets/demod_icon.png"))
+        self.demod_button.setIconSize(QSize(250, 250))
+        self.demod_button.setFixedSize(600, 500)
+        self.demod_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 36px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
         self.demod_button.clicked.connect(self.open_demodulation_dialog)
-        
-        # Add buttons to the main layout
-        main_layout.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.mod_button)
-        main_layout.addSpacing(20)
-        main_layout.addWidget(self.demod_button)
 
-        central_widget.setLayout(main_layout)
+        sdr_layout.addWidget(self.mod_button)
+        sdr_layout.addSpacing(50)
+        sdr_layout.addWidget(self.demod_button)
+        main_layout.addLayout(sdr_layout)
+
+        # Performance Insights Section Header
+        main_layout.addSpacing(50)
+        perf_label = QLabel("PERFORMANCE INSIGHTS")
+        perf_label.setFont(header_font)
+        perf_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(perf_label)
+
+        # SNR BER and Eye Diagram Buttons
+        perf_layout = QHBoxLayout()
+        self.snrber_button = QPushButton("  SNR BER", self)
+        self.snrber_button.setFont(button_font)
+        self.snrber_button.setIcon(QIcon(r"GUIAssets/snr_icon.png"))
+        self.snrber_button.setIconSize(QSize(250, 250))
+        self.snrber_button.setFixedSize(600, 500)
+        self.snrber_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 36px; 
+                font-weight: bold;
+            }
+        """)
+        self.snrber_button.clicked.connect(self.open_snrber_dialog)
+
+        self.eyediag_button = QPushButton("Eye Diagram", self)
+        self.eyediag_button.setFont(button_font)
+        self.eyediag_button.setIcon(QIcon(r"GUIAssets/eye_icon.png"))
+        self.eyediag_button.setIconSize(QSize(250, 250))
+        self.eyediag_button.setFixedSize(600, 500)
+        self.eyediag_button.setStyleSheet("""
+            QPushButton {
+                text-align: center; 
+                padding-top: 120px; 
+                font-size: 36px; /* Increased text size */
+                font-weight: bold;
+            }
+        """)
+        self.eyediag_button.clicked.connect(self.open_eyediag_dialog)
+
+        perf_layout.addWidget(self.snrber_button)
+        perf_layout.addSpacing(50)
+        perf_layout.addWidget(self.eyediag_button)
+        main_layout.addLayout(perf_layout)
+
+        # Set central widget
         self.setCentralWidget(central_widget)
 
-        self.dialog = None  # Store the dialog instance
+        self.dialog = None  # Dialog instance tracker
 
     def open_modulation_dialog(self):
-        """Open the modulation dialog."""
-        if self.dialog is None:  # Ensure only one dialog instance
+        if self.dialog is None:
             self.dialog = ModulationDialog()
             self.dialog.finished.connect(self.on_dialog_closed)
             self.dialog.show()
 
     def open_demodulation_dialog(self):
-        """Open the demodulation dialog."""
-        if self.dialog is None:  # Ensure only one dialog instance
+        if self.dialog is None:
             self.dialog = DemodulationDialog()
             self.dialog.finished.connect(self.on_dialog_closed)
-            self.dialog.show()        
+            self.dialog.show()
+
+    def open_snrber_dialog(self):
+        if self.dialog is None:
+            self.dialog = SNRBERDialog()
+            self.dialog.finished.connect(self.on_dialog_closed)
+            self.dialog.show()
+
+    def open_eyediag_dialog(self):
+        if self.dialog is None:
+            self.dialog = EyediagDialog()
+            self.dialog.finished.connect(self.on_dialog_closed)
+            self.dialog.show()
 
     def on_dialog_closed(self):
-        """Handle dialog closure."""
-        self.dialog = None  # Reset the dialog reference
+        """Reset dialog reference when closed."""
+        self.dialog = None
+
 
 # Application Entry Point
 if __name__ == "__main__":
@@ -530,3 +1018,4 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
+

@@ -96,7 +96,7 @@ else:
 
 def downconverter(signal):
     t = np.linspace(0, len(signal)/sampling_rate, len(signal), endpoint=False)
-    baseband_signal = signal * np.exp(-1j* (2 * np.pi * (CARRIER) * t))
+    baseband_signal = signal * np.exp(-1j* (2 * np.pi * (CARRIER) * t) + 5)
     I = baseband_signal.real
     Q = baseband_signal.imag
     return I, Q, t
