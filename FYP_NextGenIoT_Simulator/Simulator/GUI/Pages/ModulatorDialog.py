@@ -2,21 +2,11 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushBut
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
-
-#from Pages.GraphDialog import GraphDialog
+from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
 from traceback import format_exc
 
-import os
+import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-current_file_path = os.path.abspath(__file__)
-current_dir_path = os.path.dirname(current_file_path)
-simulator_dir_path = os.path.join(current_dir_path, '..', '..', 'Simulator')
-
-print(simulator_dir_path, "Sim")
-print(current_dir_path)
-print(current_file_path)
-
-import sys; sys.path.insert(0, simulator_dir_path); sys.path.insert(1, r"./GUI/Pages")
 from Simulator.SimulationClassCompact.ModulationClass import Modulator
 class ModulationDialog(QDialog):
     def __init__(self):
@@ -199,23 +189,30 @@ class ModulationDialog(QDialog):
             digital_signal, x_axis_digital = modulator.digitalsignal(bitstr)
 
             if modulator.IQ_Return == False:
-                t_axis, modualted_sig = modulator.modulate(bitstr)
+                t_axis, modulated_sig = modulator.modulate(bitstr)
             else:
                 t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay = modulator.modulate(bitstr)
+                modulated_sig = I_FC + Q_FC
             
             if modulator.save_signal == True:
                 message_filename = message.replace(" ", "_")
-                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_N{modulator.modulation_mode}.wav', modualted_sig)
+                if "QAM" in modulator.modulation_mode:
+                    save_mode = 'N'+modulator.modulation_mode
+                else:
+                    save_mode = modulator.modulation_mode
+                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_{save_mode}.wav', modulated_sig)
             # Generate the figure
-            digimod_fig = modulator.digital_modulated_plot(digital_signal, x_axis_digital, t_axis, modualted_sig)
-
-            digimod_dialog = GraphDialog(digimod_fig, self)  # Display digimod plot in a dialog
-            digimod_dialog.exec_()
-
+            GraphViewer = ScrollableGraphDialog(self)
+            
+            digitalAndMixed_fig = modulator.digital_modulated_plot(digital_signal, x_axis_digital, t_axis, modulated_sig)
+            GraphViewer.add_figure(digitalAndMixed_fig)
+            
             if modulator.IQ_Return == True:
                 IQplot_fig = modulator.IQ_plot(t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
-                IQplot_dialog = GraphDialog(IQplot_fig, self)  # Display IQ plot in a dialog
-                IQplot_dialog.exec_()
+                GraphViewer.add_figure(IQplot_fig)
+            
+            GraphViewer.exec_()
+            
                 
         except ValueError as e:
             # Show verbose error information for ValueErrors
