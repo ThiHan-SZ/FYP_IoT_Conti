@@ -5,10 +5,10 @@ import scipy.signal as sig
 import pickle
 import commpy
 
+from matplotlib import pyplot as plt
 
 class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-    
     def __init__(self, modulation_mode, bit_rate,carrier_freq) -> None:
         '''
             Initialize the Modulator class
@@ -208,3 +208,125 @@ class Modulator:
         modulated_signal = np.array(modulated_signal, dtype=np.float32)
 
         wav.write(filename, self.sampling_rate, modulated_signal)
+        
+    def digital_modulated_plot(self, digital_signal, x_axis_digital, t_axis, modulated_signal):
+        '''
+            Generate the figure for the digital and modulated signals
+
+            Parameters:
+                digital_signal (np.array): Digital signal to be plotted
+                x_axis_digital (np.array): Time axis of the digital signal
+                modulated_signal (np.array): Modulated signal to be plotted
+                t_axis (np.array): Time axis of the modulated signal
+        '''
+        fig, axs = plt.subplots(2, 1, figsize=(5, 5))
+        axs[0].step(x_axis_digital, digital_signal, where='post')
+        axs[0].vlines(x_axis_digital[::self.order], -0.5, 1.5, color='r', linestyle='--', alpha=0.5)
+        axs[0].set_title('Digital Signal')
+
+        axs[1].plot(t_axis, modulated_signal)
+        axs[1].set_title(f'Modulated Signal: {self.modulation_mode} Signal @ {self.carrier_freq} Hz')
+        axs[1].set_xlabel('Time (s)')
+        axs[1].set_ylabel('Amplitude')
+
+        return fig
+    
+    def IQ_plot(self, t_Shaped_Pulse, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay): 
+        '''
+            Generate the figure for the IQ Detailed plot
+
+            Parameters:
+                t_axis (np.array): Time axis of the modulated signal
+                Shaped_Pulse (np.array): Time axis of the shaped pulse
+                I_FC (np.array): In-phase Upconverted component of the transmission signal.
+                Q_FC (np.array): Quadrature Upconverted component of the transmission signal.
+                I_processed (np.array): In-phase component of the pulse shaped signal.
+                Q_processed (np.array): Quadrature component of the pulse shaped signal.
+                Dirac_Comb (np.array): Dirac Comb impulse train.
+                RRC_delay (float): Delay due to the Root Raised Cosine Filter.
+        '''
+        assert self.IQ_Return == True, "IQ_Return must be True to plot I and Q components"
+
+        fig, ax = plt.subplots(3, 2, constrained_layout=True)
+        ax[0,0].plot(t_Shaped_Pulse / self.symbol_period, I_SP, label='$u(t)$')
+        
+        # Plot the stems without markers for the real part
+        _, stemlines_I_Dirac, baseline_I_Dirac = ax[0,0].stem(
+            (RRC_delay + t_Shaped_Pulse) / self.symbol_period, 
+            Dirac_Comb.real, 
+            linefmt='r-', 
+            markerfmt='',
+            basefmt='r-'
+        )
+        baseline_I_Dirac.set_visible(False)
+        plt.setp(stemlines_I_Dirac, 'alpha', 0.5)  # Stem line transparency
+
+        # Overlay markers at non-zero positions only
+        non_zero_indices_real = np.nonzero(Dirac_Comb.real)[0]
+        non_zero_times_real = (RRC_delay + t_Shaped_Pulse[non_zero_indices_real]) / self.symbol_period
+        non_zero_values_real = Dirac_Comb.real[non_zero_indices_real]
+        ax[0,0].plot(non_zero_times_real, non_zero_values_real, 'ro', alpha=0.75)
+
+        ax[0,0].set_title("Real Part")
+
+        # Imaginary part with stems and non-zero markers
+        ax[0,1].plot(t_Shaped_Pulse / self.symbol_period, Q_SP)
+
+        # Plot the stems without markers for the imaginary part
+        _, stemlines_Q_Dirac, baseline_Q_Dirac = ax[0,1].stem(
+            (RRC_delay + t_Shaped_Pulse) / self.symbol_period,
+            Dirac_Comb.imag,
+            linefmt='r-',
+            markerfmt='',
+            basefmt='r-'
+        )
+        baseline_Q_Dirac.set_visible(False)
+        plt.setp(stemlines_Q_Dirac, 'alpha', 0.5)  # Stem line transparency
+
+        # Overlay markers at non-zero positions only
+        non_zero_indices_imag = np.nonzero(Dirac_Comb.imag)[0]
+        non_zero_times_imag = (RRC_delay + t_Shaped_Pulse[non_zero_indices_imag]) / self.symbol_period
+        non_zero_values_imag = Dirac_Comb.imag[non_zero_indices_imag]
+        ax[0,1].plot(non_zero_times_imag, non_zero_values_imag, 'ro', alpha=0.75)
+
+        ax[0,1].set_title("Imaginary Part")
+
+        # Continue with other subplots as usual
+        ax[1,0].plot(t_Shaped_Pulse, I_FC)
+        ax[1,0].plot(t_Shaped_Pulse, I_SP)
+        ax[1,0].set_title("I Signal")
+        ax[1,0].set_ylabel("Amplitude")
+        ax[1,0].set_xlabel("Sample Index (T/Ts)")
+
+        ax[1,1].plot(t_Shaped_Pulse, Q_FC)
+        ax[1,1].plot(t_Shaped_Pulse, Q_SP)
+        ax[1,1].set_title("Q Signal")
+        ax[1,1].set_ylabel("Amplitude")
+        ax[1,1].set_xlabel("Sample Index (T/Ts)")
+
+        # Spectrum calculation and plotting remains unchanged
+        spectrum = lambda x: np.abs(np.fft.fftshift(np.fft.fft(x[::], n=len(x))) / len(x))
+        f_spec_x_axis = np.linspace(-self.sampling_rate / 2, self.sampling_rate / 2, len(Shaped_Pulse), endpoint=False)
+
+        freq_range = self.carrier_freq * 2
+        range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
+
+        f_spec_x_axis = f_spec_x_axis[range_indices]
+        I_spectrum = spectrum(I_SP)[range_indices]
+        Q_spectrum = spectrum(Q_SP)[range_indices]
+        I_FC_spectrum = spectrum(I_FC)[range_indices]
+        Q_FC_spectrum = spectrum(Q_FC)[range_indices]
+
+        ax[2,0].plot(f_spec_x_axis, I_spectrum)
+        ax[2,0].plot(f_spec_x_axis, I_FC_spectrum)
+        ax[2,0].set_title("I Spectrum")
+        ax[2,0].set_ylabel("Magnitude")
+        ax[2,0].set_xlabel("Frequency (Hz)")
+        
+        ax[2,1].plot(f_spec_x_axis, Q_spectrum)
+        ax[2,1].plot(f_spec_x_axis, Q_FC_spectrum)
+        ax[2,1].set_title("Q Spectrum")
+        ax[2,1].set_ylabel("Magnitude")
+        ax[2,1].set_xlabel("Frequency (Hz)")
+
+        return fig
