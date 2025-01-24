@@ -52,7 +52,7 @@ def LUT_convolution2(I, Q, rrc, samples_per_symbol, signal_length):
         start_idx = idx * samples_per_symbol
         Shaped_Pulse[start_idx:start_idx + len(rrc)] += pulseLUT[impulse_idx]
         
-    return Shaped_Pulse
+    return Shaped_Pulse, Dirac_Comb
         
 #@profile
 def LUT_convolution(I, Q, rrc, samples_per_symbol, signal_length):
@@ -79,7 +79,7 @@ def lazy_convolution(I, Q, rrc, samples_per_symbol, signal_length):
         Shaped_Pulse[start_idx:start_idx + len(rrc)] += (i_val + 1j * q_val) * rrc
         Dirac_Comb[start_idx] = i_val + 1j * q_val  # Place only at start of each symbol
         
-    return Shaped_Pulse
+    return Shaped_Pulse, Dirac_Comb
 
 # Benchmark FFT-Based Convolution
 def fft_convolution(I, Q, rrc, samples_per_symbol, signal_length):
@@ -95,16 +95,20 @@ def fft_convolution(I, Q, rrc, samples_per_symbol, signal_length):
 print("Running benchmarks...")
 
 start_time = time.time()
-Shaped_Pulse_LUT = LUT_convolution(I, Q, rrc, samples_per_symbol, signal_length)
+Shaped_Pulse_LUT, Dirac_Comb1 = lazy_convolution(I, Q, rrc, samples_per_symbol, signal_length)
 LUT_time = time.time() - start_time
 print(f"LUT Convolution Time: {LUT_time:.6f} seconds")
 
 # FFT Convolution Benchmark
 start_time = time.time()
-Shaped_Pulse_LUT2 = LUT_convolution2(I, Q, rrc, samples_per_symbol, signal_length)
+Shaped_Pulse_LUT2, Dirac_Comb2 = LUT_convolution2(I, Q, rrc, samples_per_symbol, signal_length)
 LUT_time = time.time() - start_time
 print(f"LUT2 Convolution Time: {LUT_time:.6f} seconds")
 
 # Verify Results
 difference = np.max(np.abs(Shaped_Pulse_LUT - Shaped_Pulse_LUT2))
+print(f"Maximum Difference Between Results: {difference:.6e}")
+
+# Verify Results
+difference = np.max(np.abs(Dirac_Comb1 - Dirac_Comb2))
 print(f"Maximum Difference Between Results: {difference:.6e}")
