@@ -1,7 +1,11 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QScrollArea, QComboBox, QFileDialog
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
+from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
+
+import re
 class DemodulationDialog(QDialog):
 
     def __init__(self):
