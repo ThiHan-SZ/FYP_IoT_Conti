@@ -131,10 +131,10 @@ class ModulationDialog(QDialog):
         main_layout.addWidget(self.plot_iq_checkbox)
 
         # Button to Run the Simulation
-        self.run_button = QPushButton("Run Simulation", self)
+        self.run_button = QPushButton("Run Modulation", self)
         self.run_button.setFont(font)
         self.run_button.setFixedSize(200, 50)
-        self.run_button.clicked.connect(self.run_simulation)  # Connect button click to the run_simulation method
+        self.run_button.clicked.connect(self.run_modulation)  # Connect button click to the run_simulation method
         main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
 
         # Output Display for Simulation Results
@@ -165,7 +165,7 @@ class ModulationDialog(QDialog):
         """Handle state change for Plot IQ checkbox."""
         self.plot_iq = state == Qt.Checked
 
-    def run_simulation(self):
+    def run_modulation(self):
         #Display Digital & Modulated S
         try:
             # Get inputs
