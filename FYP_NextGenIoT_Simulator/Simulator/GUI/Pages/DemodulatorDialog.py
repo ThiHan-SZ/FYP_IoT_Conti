@@ -93,20 +93,22 @@ class DemodulationDialog(QDialog):
                 border: 1px solid #aaaaaa;
             }
         """)
+        
+        fading_widget = QWidget()
+        fading_widget.setLayout(fading_layout)
+        fading_widget.hide()  # Hide until Fading is selected
+        self.scroll_layout.addWidget(fading_widget)
+
         self.fading_selection.addItems(["Select Fading Type", "Rician", "Rayleigh"])
         self.fading_selection.setFont(font)
         self.fading_selection.currentTextChanged.connect(self.handle_fading_selection)
         fading_layout.addWidget(self.fading_selection)
+        self.conditional_inputs["Fading"] = self.fading_selection
 
         self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor")
         self.rician_input_layout.hide()  # Hidden until "Rician" is selected
         fading_layout.addWidget(self.rician_input_layout)
-
-        fading_widget = QWidget()
-        fading_widget.setLayout(fading_layout)
-        fading_widget.hide()  # Hide until Fading is selected
-        self.conditional_inputs["Fading"] = fading_widget
-        self.scroll_layout.addWidget(fading_widget)
+        self.conditional_inputs["K value"] = self.rician_input_layout
 
         # Freq Drift Input
         self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/sample)")
