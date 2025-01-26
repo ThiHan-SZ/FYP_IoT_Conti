@@ -127,7 +127,7 @@ class ModulationDialog(QDialog):
         
         # File Name Input (Hidden by default)
         self.file_name_input = QLineEdit(self)
-        self.file_name_input.setPlaceholderText("Enter file name (e.g., signal.wav)")
+        self.file_name_input.setPlaceholderText("Enter file name (e.g., signal) [UP TO 16 Chars]")
         self.file_name_input.setFont(font)
         self.file_name_input.setVisible(False)  # Hidden by default
         main_layout.addWidget(self.file_name_input)
@@ -203,16 +203,25 @@ class ModulationDialog(QDialog):
                 modulated_sig = I_FC + Q_FC
             
             if modulator.save_signal == True:
-                message_filename = message.replace(" ", "_")
+                message = message.replace(" ", "_")
+                filename = self.file_name_input.text()
+                
+                try:
+                    if (len(filename) > 16) or (len(message) > 16 and not filename):
+                        raise ValueError("PLEASE ENTER A FILE NAME WITH UP TO 16 CHARACTERS. [MESSAGE TOO LONG FOR DEFAULT MODE]")
+                except ValueError as e:
+                    self.display_message(e)
+                    
                 if "QAM" in modulator.modulation_mode:
                     save_mode = 'N'+modulator.modulation_mode
                 else:
                     save_mode = modulator.modulation_mode
                     
                 # If no name entered use default saving instructions, else use entered name
-                if not self.file_name_input.text() or " " in self.file_name_input.text():
-                    self.display_message(f"File saved with default mode: {message_filename}")
-                    modulator.save(f'test_file__{message_filename}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig) 
+                
+                if (not filename) or (" " in filename):
+                    self.display_message(f"File saved with default mode: {message}")
+                    modulator.save(f'test_file__{message}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig) 
                 else:
                     self.display_message(f"File saved with named mode: {self.file_name_input.text()}")
                     modulator.save(f'test_file__{self.file_name_input.text()}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig)
