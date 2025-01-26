@@ -527,6 +527,11 @@ class DemodulationDialog(QDialog):
                     if input_field and input_field.text().strip():
                         channel_params[channel] = float(input_field.text().strip())
 
+            bit_rate = self.bit_rate_input
+            self.selected_mode #selected demod
+            file_path = self.file_label.text()
+
+
             # Initialize Demodulator
             demodulator = Demodulator()
 
@@ -535,7 +540,7 @@ class DemodulationDialog(QDialog):
 
             # Display the results
             self.display_message("Demodulation complete!")
-            
+
         except ValueError as e:
             self.display_message(f"ValueError: {str(e)}")
         except Exception as e:
