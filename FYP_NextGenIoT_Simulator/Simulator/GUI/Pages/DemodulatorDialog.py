@@ -1,11 +1,14 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QScrollArea, QComboBox, QFileDialog
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from traceback import format_exc
+import re
+
 import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
 
-import re
+
 class DemodulationDialog(QDialog):
 
     def __init__(self):
@@ -144,12 +147,12 @@ class DemodulationDialog(QDialog):
         self.bpsk_button = QPushButton("BPSK", self)
         self.bpsk_button.setFont(font)
         self.bpsk_button.setFixedSize(150, 50)
-        self.bpsk_button.clicked.connect(lambda: self.display_message("BPSK selected"))
+        self.bpsk_button.clicked.connect(lambda: self.select_demod_mode("BPSK"))
 
         self.qpsk_button = QPushButton("QPSK", self)
         self.qpsk_button.setFont(font)
         self.qpsk_button.setFixedSize(150, 50)
-        self.qpsk_button.clicked.connect(lambda: self.display_message("QPSK selected"))
+        self.qpsk_button.clicked.connect(lambda: self.select_demod_mode("QPSK"))
 
         bpsk_qpsk_layout.addWidget(self.bpsk_button)
         bpsk_qpsk_layout.addWidget(self.qpsk_button)
@@ -169,7 +172,7 @@ class DemodulationDialog(QDialog):
         for mode, button in self.qam_buttons.items():
             button.setFont(font)
             button.setFixedSize(150, 50)
-            button.clicked.connect(lambda checked, m=mode: self.display_message(f"{m} selected"))
+            button.clicked.connect(lambda checked, m=mode: self.select_demod_mode(m))
             qam_layout.addWidget(button)
         qam_layout.addStretch()
         demodulation_layout.addLayout(qam_layout)
@@ -196,7 +199,7 @@ class DemodulationDialog(QDialog):
                     truncated_path = file_path
                 regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_spbk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
                 checkfile = file_path[::-1]
-                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz\d+_spbk\d+[A-Z]{4}(.[0-9]{2,4})?.wav
+                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kbps_[A-Z]{4}(.[0-9]{2,4})?.wav
                 # Reverse matching is done to match files faster
                 if re.match(regexstring, file_path[::-1]):
                     file_label.setText(truncated_path)
@@ -215,10 +218,11 @@ class DemodulationDialog(QDialog):
         self.main_layout.addLayout(file_selection_layout)
 
         # Run Demodulation Button
-        self.run_demod_button = QPushButton("Run Demodulation", self)
-        self.run_demod_button.setFont(font)
-        self.run_demod_button.setFixedSize(300, 50)
-        self.main_layout.addWidget(self.run_demod_button, alignment=Qt.AlignCenter)
+        self.run_button = QPushButton("Run Simulation", self)
+        self.run_button.setFont(font)
+        self.run_button.setFixedSize(300, 50)
+        self.run_button.clicked.connect(self.run_simulation) #connect to handler
+        self.main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
 
         # Output Display (Terminal-like)
         self.output_display = QTextEdit(self)
@@ -227,6 +231,10 @@ class DemodulationDialog(QDialog):
         self.output_display.setFixedHeight(200)
         self.main_layout.addWidget(self.output_display)
 
+    def select_demod_mode(self,mode):
+        """Set selected demod mode and update display"""
+        self.selected_mode = mode
+        self.display_message(f"Selected Demodulation Mode: {self.selected_mode}")
 
     def create_input_layout(self, label_text, placeholder_text):
         layout = QHBoxLayout()
@@ -268,3 +276,50 @@ class DemodulationDialog(QDialog):
     
     def display_message(self, message):
         self.output_display.append(message)
+
+    def run_simulation(self):
+        try:
+            if not self.selected_mode:
+                self.display_message("Error: Please select a demodulation mode.")
+                return
+
+            if not self.bit_rate_input.text():
+                self.display_message("Error: Please enter a bit rate.")
+                return
+            bit_rate = int(self.bit_rate_input.text())
+
+            if not self.selected_channels:
+                self.display_message("Error: Please select at least one channel mode.")
+                return
+
+            if not self.file_label.text() or self.file_label.text() == "No file selected":
+                self.display_message("Error: Please select a file.")
+                return
+
+            # Collect dynamic parameters (e.g., AWGN SNR, Freq Drift)
+            channel_params = {}
+            for channel, widget in self.conditional_inputs.items():
+                if widget.isVisible():
+                    input_field = widget.findChild(QLineEdit)
+                    if input_field and input_field.text().strip():
+                        channel_params[channel] = float(input_field.text().strip())
+
+            bit_rate = self.bit_rate_input
+            self.selected_mode #selected demod
+            file_path = self.file_label.text()
+
+
+            # Initialize Demodulator
+            demodulator = Demodulator()
+
+            # Run demodulation
+            
+
+            # Display the results
+            self.display_message("Demodulation complete!")
+
+        except ValueError as e:
+            self.display_message(f"ValueError: {str(e)}")
+        except Exception as e:
+            error_details = format_exc()
+            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
