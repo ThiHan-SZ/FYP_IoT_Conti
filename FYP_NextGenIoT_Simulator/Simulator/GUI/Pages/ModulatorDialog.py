@@ -167,6 +167,7 @@ class ModulationDialog(QDialog):
     def handle_save_checkbox(self, state):
         """Handle state change for Save checkbox."""
         self.save_signal = state == Qt.Checked
+        self.file_name_input.setVisible(self.save_signal)  # Show or hide the file name input
 
     def handle_plot_iq_checkbox(self, state):
         """Handle state change for Plot IQ checkbox."""
