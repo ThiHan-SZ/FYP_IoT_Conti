@@ -124,6 +124,13 @@ class ModulationDialog(QDialog):
         self.save_checkbox.setFont(font)
         self.save_checkbox.stateChanged.connect(self.handle_save_checkbox)  # Connect to handler
         main_layout.addWidget(self.save_checkbox)
+        
+        # File Name Input (Hidden by default)
+        self.file_name_input = QLineEdit(self)
+        self.file_name_input.setPlaceholderText("Enter file name (e.g., signal.wav)")
+        self.file_name_input.setFont(font)
+        self.file_name_input.setVisible(False)  # Hidden by default
+        main_layout.addWidget(self.file_name_input)
 
         self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
         self.plot_iq_checkbox.setFont(font)
@@ -131,10 +138,10 @@ class ModulationDialog(QDialog):
         main_layout.addWidget(self.plot_iq_checkbox)
 
         # Button to Run the Simulation
-        self.run_button = QPushButton("Run Modulation", self)
+        self.run_button = QPushButton("Run Simulation", self)
         self.run_button.setFont(font)
         self.run_button.setFixedSize(200, 50)
-        self.run_button.clicked.connect(self.run_modulation)  # Connect button click to the run_simulation method
+        self.run_button.clicked.connect(self.run_simulation)  # Connect button click to the run_simulation method
         main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
 
         # Output Display for Simulation Results
@@ -160,12 +167,13 @@ class ModulationDialog(QDialog):
     def handle_save_checkbox(self, state):
         """Handle state change for Save checkbox."""
         self.save_signal = state == Qt.Checked
+        self.file_name_input.setVisible(self.save_signal)  # Show or hide the file name input
 
     def handle_plot_iq_checkbox(self, state):
         """Handle state change for Plot IQ checkbox."""
         self.plot_iq = state == Qt.Checked
 
-    def run_modulation(self):
+    def run_simulation(self):
         #Display Digital & Modulated S
         try:
             # Get inputs
@@ -200,7 +208,14 @@ class ModulationDialog(QDialog):
                     save_mode = 'N'+modulator.modulation_mode
                 else:
                     save_mode = modulator.modulation_mode
-                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_{save_mode}.wav', modulated_sig)
+                    
+                # If no name entered use default saving instructions, else use entered name
+                if not self.file_name_input.text() or " " in self.file_name_input.text():
+                    self.display_message(f"File saved with default mode: {message_filename}")
+                    modulator.save(f'test_file__{message_filename}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig) 
+                else:
+                    self.display_message(f"File saved with named mode: {self.file_name_input.text()}")
+                    modulator.save(f'test_file__{self.file_name_input.text()}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig)
             # Generate the figure
             GraphViewer = ScrollableGraphDialog(self)
             
