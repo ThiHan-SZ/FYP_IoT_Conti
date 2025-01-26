@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QScrollArea, QComboBox, QFileDialog
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QScrollArea, QComboBox, QFileDialog, QCheckBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from traceback import format_exc
@@ -225,6 +225,17 @@ class DemodulationDialog(QDialog):
         file_selection_layout.addStretch()
         self.main_layout.addLayout(file_selection_layout)
 
+        # Plot IQ and Constellation Checkbox
+        self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
+        self.plot_iq_checkbox.setFont(font)
+        self.plot_iq_checkbox.stateChanged.connect(self.handle_plot_iq_checkbox)  
+        self.main_layout.addWidget(self.plot_iq_checkbox)
+        
+        self.constellation_checkbox = QCheckBox("Plot Constellation", self)
+        self.constellation_checkbox.setFont(font)
+        self.constellation_checkbox.stateChanged.connect(self.handle_constellation_checkbox)  # Connect to handler
+        self.main_layout.addWidget(self.constellation_checkbox)
+
         # Run Demodulation Button
         self.run_button = QPushButton("Run Simulation", self)
         self.run_button.setFont(font)
@@ -285,6 +296,14 @@ class DemodulationDialog(QDialog):
             self.rician_input_layout.hide()
         #self.conditional_inputs["Fading"] = selection
     
+    def handle_plot_iq_checkbox(self, state):
+        """Handle state change for Plot IQ checkbox."""
+        self.plot_iq = state == Qt.Checked
+
+    def handle_constellation_checkbox(self, state):
+        """Handle state change for Plot IQ checkbox."""
+        self.plot_constellation = state == Qt.Checked
+
     def display_message(self, message):
         self.output_display.append(message)
 
