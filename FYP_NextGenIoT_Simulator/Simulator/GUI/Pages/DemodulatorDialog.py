@@ -186,7 +186,7 @@ class DemodulationDialog(QDialog):
         # file selection logic
         def select_file():
             file_dialog = QFileDialog(self)
-            file_path, _ = file_dialog.getOpenFileName(self, "Select a File", "", "All Files (*);;Text Files (*.txt)")
+            file_path, _ = file_dialog.getOpenFileName(self, "Select a File", "", "All Files (*);;WAV Files (*.wav)")
             #truncate name
             if file_path:
                 max_length = 60  
@@ -194,7 +194,14 @@ class DemodulationDialog(QDialog):
                     truncated_path = f"...{file_path[-max_length:]}"  
                 else:
                     truncated_path = file_path
-                file_label.setText(truncated_path)
+                regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_spbk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
+                checkfile = file_path[::-1]
+                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz\d+_spbk\d+[A-Z]{4}(.[0-9]{2,4})?.wav
+                # Reverse matching is done to match files faster
+                if re.match(regexstring, file_path[::-1]):
+                    file_label.setText(truncated_path)
+                    self.file_name = file_path
+                    self.display_message("File selected successfully")
             else:
                 file_label.setText("No file selected")
 
