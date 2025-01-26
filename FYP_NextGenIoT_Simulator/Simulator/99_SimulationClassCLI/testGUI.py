@@ -7,8 +7,7 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QFont,QIcon
 
 from testmodulator import Modulator
 from testdemodulator import Demodulator
@@ -138,6 +137,13 @@ class ModulationDialog(QDialog):
         self.save_checkbox.stateChanged.connect(self.handle_save_checkbox)  # Connect to handler
         main_layout.addWidget(self.save_checkbox)
 
+        # File Name Input (Hidden by default)
+        self.file_name_input = QLineEdit(self)
+        self.file_name_input.setPlaceholderText("Enter file name (e.g .wav)")
+        self.file_name_input.setFont(font)
+        self.file_name_input.setVisible(False)  # Hidden by default
+        main_layout.addWidget(self.file_name_input)
+
         self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
         self.plot_iq_checkbox.setFont(font)
         self.plot_iq_checkbox.stateChanged.connect(self.handle_plot_iq_checkbox)  # Connect to handler
@@ -173,6 +179,7 @@ class ModulationDialog(QDialog):
     def handle_save_checkbox(self, state):
         """Handle state change for Save checkbox."""
         self.save_signal = state == Qt.Checked
+        self.file_name_input.setVisible(self.save_signal)  # Show or hide the file name input
 
     def handle_plot_iq_checkbox(self, state):
         """Handle state change for Plot IQ checkbox."""
@@ -445,7 +452,6 @@ class DemodulationDialog(QDialog):
         self.output_display.setFixedHeight(200)
         self.main_layout.addWidget(self.output_display)
 
-
     def create_input_layout(self, label_text, placeholder_text):
         layout = QHBoxLayout()
         label = QLabel(label_text)
@@ -493,7 +499,6 @@ class SNRBERDialog(QDialog):
         self.setWindowTitle("SNR BER")
         self.setGeometry(100, 100, 1200, 1000)
 
-        # Apply dark theme styling
         self.setStyleSheet("""
             QDialog { background-color: #2e2e2e; color: #ffffff; }
             QLabel, QLineEdit, QPushButton, QTextEdit, QDial { color: #ffffff; }
@@ -571,7 +576,6 @@ class SNRBERDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Replace the QDial section in `SNRBERDialog` with the following:
         char_input_layout = QVBoxLayout()
         char_input_label = QLabel("Number of Input Characters:", font=font)
         char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
@@ -607,7 +611,6 @@ class SNRBERDialog(QDialog):
         char_input_layout.addWidget(self.char_slider)
         char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
         self.main_layout.addLayout(char_input_layout)
-
 
         # SNR Lower and Upper Bound Inputs
         snr_input_layout = QVBoxLayout()
@@ -845,7 +848,7 @@ class EyediagDialog(QDialog):
 
     def update_char_label(self, value):
         """Update the label for the number of input characters."""
-        char_count = value * 1000  # Map range 1-100 to 1000-100000
+        char_count = value * 1000  
         self.char_label.setText(f"{char_count:,}")
 
     def display_message(self, message):
@@ -856,7 +859,6 @@ class EyediagDialog(QDialog):
         """Set selected modulation mode and update the display."""
         self.selected_mode = mode
         self.display_message(f"Selected Modulation Mode: {self.selected_mode}")
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1010,7 +1012,6 @@ class MainWindow(QMainWindow):
     def on_dialog_closed(self):
         """Reset dialog reference when closed."""
         self.dialog = None
-
 
 # Application Entry Point
 if __name__ == "__main__":
