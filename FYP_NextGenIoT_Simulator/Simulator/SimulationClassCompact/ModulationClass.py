@@ -200,7 +200,7 @@ class Modulator:
             start_idx = idx * samples_per_symbol
             Shaped_Pulse[start_idx:start_idx + len(rrc)] += pulseLUT[impulse_idx]
 
-        t_Mixed_Signal = np.arange(0, len(Shaped_Pulse) / self.sampling_rate, 1 / self.sampling_rate)
+        t_Mixed_Signal = np.arange(0, shaped_pulse_length, dtype=float) / self.sampling_rate
 
         ###Upscaling the signal to the carrier frequency###
         I_processed = Shaped_Pulse.real
