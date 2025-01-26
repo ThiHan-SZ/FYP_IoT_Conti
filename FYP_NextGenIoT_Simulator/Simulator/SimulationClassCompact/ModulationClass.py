@@ -306,8 +306,8 @@ class Modulator:
         
         ### Upsampled + Envelope - Real Part of Signal ###
         
-        ax[1,0].plot(t_Mixed_Signal, I_FC)
-        ax[1,0].plot(t_Mixed_Signal, I_SP)
+        ax[1,0].plot(t_Mixed_Signal, I_FC,color='b')
+        ax[1,0].plot(t_Mixed_Signal, I_SP,color='r')
         ax[1,0].set_title("I Signal")
         ax[1,0].set_ylabel("Amplitude")
         ax[1,0].set_xlabel("Time (s)")
@@ -317,8 +317,8 @@ class Modulator:
         I_spectrum = spectrum(I_SP)[range_indices]
         I_FC_spectrum = spectrum(I_FC)[range_indices]
 
-        ax[2,0].plot(f_spec_x_axis, I_spectrum)
-        ax[2,0].plot(f_spec_x_axis, I_FC_spectrum)
+        ax[2,0].plot(f_spec_x_axis, I_FC_spectrum,color='b')
+        ax[2,0].plot(f_spec_x_axis, I_spectrum,color='r')
         ax[2,0].set_title("I Spectrum")
         ax[2,0].set_ylabel("Magnitude")
         ax[2,0].set_xlabel("Frequency (Hz)")
@@ -350,8 +350,8 @@ class Modulator:
 
         ### Upsampled + Envelope - Imaginary Part of Signal ###
         
-        ax[1,1].plot(t_Mixed_Signal, Q_FC)
-        ax[1,1].plot(t_Mixed_Signal, Q_SP)
+        ax[1,1].plot(t_Mixed_Signal, Q_FC,color='b')
+        ax[1,1].plot(t_Mixed_Signal, Q_SP,color='r')
         ax[1,1].set_title("Q Signal")
         ax[1,1].set_ylabel("Amplitude")
         ax[1,1].set_xlabel("Time (s)")
@@ -361,8 +361,8 @@ class Modulator:
         Q_spectrum = spectrum(Q_SP)[range_indices]
         Q_FC_spectrum = spectrum(Q_FC)[range_indices]
 
-        ax[2,1].plot(f_spec_x_axis, Q_spectrum)
-        ax[2,1].plot(f_spec_x_axis, Q_FC_spectrum)
+        ax[2,1].plot(f_spec_x_axis, Q_FC_spectrum,color='b')
+        ax[2,1].plot(f_spec_x_axis, Q_spectrum,color='r')
         ax[2,1].set_title("Q Spectrum")
         ax[2,1].set_ylabel("Magnitude")
         ax[2,1].set_xlabel("Frequency (Hz)")
