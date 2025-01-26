@@ -10,21 +10,31 @@ import pickle
 class Demodulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
     
-    def __init__(self, modulation_mode, bit_rate, carrier_freq) -> None:
-        #Demodulation Parameters
-        self.carrier_freq = carrier_freq
+    def __init__(self, modulation_mode, bit_rate, sampling_rate) -> None: 
+        """
+        Demodulator Class Initializer
+
+        Parameters:
+            modulation_mode (str) : Modulation mode to be used for demodulation. Supported modes are BPSK, QPSK, QAM16, QAM64, QAM256, QAM1024, QAM4096
+            bit_rate (float) : Bit rate of the signal to be demodulated
+            sampling_rate (float) : Sampling rate of the signal to be demodulated
+        """
+        #Modulation Parameters
         self.modulation_mode = modulation_mode
         self.order = self.modulation_modes[modulation_mode]
-        self.demodulator_total_delay = None
-
+        
         #Bit Rate Parameters
         self.baud_rate = bit_rate/self.order
         self.symbol_period = 1/self.baud_rate
         self.oversampling_factor = 10
-        self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF
+        self.sampling_rate = sampling_rate
         self.samples_per_symbol = int(self.sampling_rate/self.baud_rate)
-
+        
         #Demodulation Parameters
+        self.carrier_freq = sampling_rate/(2*self.oversampling_factor)
+        self.demodulator_total_delay = None
+
+        #Filter Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
         self.low_pass_filter_cutoff = 0.9*self.Nyquist_Bandwidth
         self.low_pass_filter_order = 77
@@ -35,8 +45,22 @@ class Demodulator:
         self.plot_IQ = True
         self.plot_constellation = False
         self.fig = plt.figure('Demodulator', constrained_layout=True)
-        self.ax = self.plot_setup(self.fig)
+        self.ax = self.plot_setup(self.fig)'''
+        
+    @staticmethod
+    def readfile(filename):
         '''
+        Reads a .wav file and returns its sample rate and data.
+        
+        Parameters:
+            filename (str): The name of the .wav file to be read.
+        
+        Returns:
+            tuple: A tuple containing the sample rate of the .wav file and its data.
+        '''
+        rate, data = wav.read(filename)
+        return rate, data
+    
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
         baseband_signal = signal * np.exp(-1j* 2 *np.pi * self.carrier_freq * t)

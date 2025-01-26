@@ -7,6 +7,7 @@ import re
 import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
+import Simulator.SimulationClassCompact.ChannelClass as Channel
 
 
 class DemodulationDialog(QDialog):
@@ -180,8 +181,9 @@ class DemodulationDialog(QDialog):
 
         # File Selection Section
         file_selection_layout = QHBoxLayout()
-        file_label = QLabel("No file selected", self)
-        file_label.setFont(font)
+        self.file_label = QLabel("No file selected", self)
+        self.file_path = None
+        self.file_label.setFont(font)
         file_button = QPushButton("Select File", self)
         file_button.setFont(font)
         file_button.setFixedSize(200, 40)
@@ -198,20 +200,23 @@ class DemodulationDialog(QDialog):
                 else:
                     truncated_path = file_path
                 regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_spbk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
-                checkfile = file_path[::-1]
                 # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kbps_[A-Z]{4}(.[0-9]{2,4})?.wav
                 # Reverse matching is done to match files faster
                 if re.match(regexstring, file_path[::-1]):
-                    file_label.setText(truncated_path)
-                    self.file_name = file_path
-                    self.display_message("File selected successfully")
+                    self.file_label.setText(truncated_path)
+                    self.file_path = file_path
+                    self.display_message("File Selection Successful")
+                else:
+                    self.file_label.setText("Invalid File Selected")
+                    self.display_message("Invalid File Selected")
             else:
-                file_label.setText("No file selected")
+                self.file_label.setText("No file selected")
+                
 
 
         file_button.clicked.connect(select_file)
 
-        file_selection_layout.addWidget(file_label)
+        file_selection_layout.addWidget(self.file_label)
         file_selection_layout.addSpacing(20)
         file_selection_layout.addWidget(file_button)
         file_selection_layout.addStretch()
@@ -230,6 +235,8 @@ class DemodulationDialog(QDialog):
         self.output_display.setReadOnly(True)
         self.output_display.setFixedHeight(200)
         self.main_layout.addWidget(self.output_display)
+        
+        self.selected_mode = None  # Store the selected modulation mode
 
     def select_demod_mode(self,mode):
         """Set selected demod mode and update display"""
@@ -279,42 +286,48 @@ class DemodulationDialog(QDialog):
 
     def run_simulation(self):
         try:
-            if not self.selected_mode:
-                self.display_message("Error: Please select a demodulation mode.")
-                return
-
             if not self.bit_rate_input.text():
                 self.display_message("Error: Please enter a bit rate.")
                 return
-            bit_rate = int(self.bit_rate_input.text())
-
-            if not self.selected_channels:
-                self.display_message("Error: Please select at least one channel mode.")
+            
+            if not self.selected_mode:
+                self.display_message("Error: Please select a demodulation mode.")
                 return
 
             if not self.file_label.text() or self.file_label.text() == "No file selected":
                 self.display_message("Error: Please select a file.")
                 return
 
+            if not self.selected_mode in self.file_label.text():
+                self.display_message("Error: Please select a file that matches the selected demodulation mode or change demodulation mode.")
+                return
             # Collect dynamic parameters (e.g., AWGN SNR, Freq Drift)
             channel_params = {}
             for channel, widget in self.conditional_inputs.items():
                 if widget.isVisible():
                     input_field = widget.findChild(QLineEdit)
-                    if input_field and input_field.text().strip():
+                    text =  input_field.text().strip()
+                    if input_field and text:
                         channel_params[channel] = float(input_field.text().strip())
+                    else:
+                        self.display_message(f"Error: Please enter a valid value for {channel}.")
+                        return
 
-            bit_rate = self.bit_rate_input
-            self.selected_mode #selected demod
-            file_path = self.file_label.text()
+            bit_rate = int(self.bit_rate_input.text())
+            mode = self.selected_mode #selected demod
+            
+            file_path = self.file_path
 
+            sampling_rate, signal = Demodulator.readfile(file_path)
 
             # Initialize Demodulator
-            demodulator = Demodulator()
+            demodulator = Demodulator(mode, bit_rate, sampling_rate)
 
-            # Run demodulation
-            
-
+            # Apply channels if any
+            if self.selected_channels:
+                for channel in self.selected_channels:
+                    text = 0
+                
             # Display the results
             self.display_message("Demodulation complete!")
 
