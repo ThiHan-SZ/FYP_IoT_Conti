@@ -208,7 +208,14 @@ class ModulationDialog(QDialog):
                     save_mode = 'N'+modulator.modulation_mode
                 else:
                     save_mode = modulator.modulation_mode
-                modulator.save(f'test_file__{message_filename}__{modulator.carrier_freq/1000}kHz_{bit_rate/1000}kbps_{save_mode}.wav', modulated_sig)
+                    
+                # If no name entered use default saving instructions, else use entered name
+                if not self.file_name_input.text() or " " in self.file_name_input.text():
+                    self.display_message(f"File saved with default mode: {message_filename}")
+                    modulator.save(f'test_file__{message_filename}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig) 
+                else:
+                    self.display_message(f"File saved with named mode: {self.file_name_input.text()}")
+                    modulator.save(f'test_file__{self.file_name_input.text()}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig)
             # Generate the figure
             GraphViewer = ScrollableGraphDialog(self)
             
