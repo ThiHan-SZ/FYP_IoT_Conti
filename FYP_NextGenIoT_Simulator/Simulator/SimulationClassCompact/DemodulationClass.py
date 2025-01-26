@@ -41,11 +41,11 @@ class Demodulator:
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
 
-        '''#Plotting Parameters
-        self.plot_IQ = True
+        #Plotting Parameters
+        self.plot_IQ = False
         self.plot_constellation = False
         self.fig = plt.figure('Demodulator', constrained_layout=True)
-        self.ax = self.plot_setup(self.fig)'''
+        self.ax = None
         
     @staticmethod
     def readfile(filename):
@@ -166,7 +166,7 @@ class Demodulator:
             bit_array[0::2] = i_bits
             bit_array[1::2] = q_bits
         else:
-            with open(f'FYP_NextGenIoT_Simulator/QAM_LUT_pkl/R{self.modulation_mode}.pkl', 'rb') as file:
+            with open(rf'FYP_NextGenIoT_Simulator/QAM_LUT_pkl/R{self.modulation_mode}.pkl', 'rb') as file:
                 qam_const = pickle.load(file)
 
             qam_tree = spysp.KDTree([k for k in qam_const.keys()])
@@ -175,8 +175,8 @@ class Demodulator:
             bit_array[:] = np.array([list(qam_const[tuple(qam_tree.data[i])]) for i in coord]).flatten()
 
         return bit_array
-    #### Plotting Functions ####
-    '''    
+    
+    #### Plotting Functions ####    
     def plot_setup(self, fig):
         axes = {}
         if self.plot_IQ and self.plot_constellation:
@@ -236,4 +236,4 @@ class Demodulator:
         if self.plot_IQ:
             self.plot(demod_signal)
         if self.plot_constellation:
-            self.received_constellation(demod_signal)'''
+            self.received_constellation(demod_signal)

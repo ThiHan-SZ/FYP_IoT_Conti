@@ -104,6 +104,7 @@ class DemodulationDialog(QDialog):
         self.fading_selection.currentTextChanged.connect(self.handle_fading_selection)
         fading_layout.addWidget(self.fading_selection)
         self.conditional_inputs["Fading"] = self.fading_selection
+        
 
         self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor")
         self.rician_input_layout.hide()  # Hidden until "Rician" is selected
@@ -282,6 +283,7 @@ class DemodulationDialog(QDialog):
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
+        #self.conditional_inputs["Fading"] = selection
     
     def display_message(self, message):
         self.output_display.append(message)
@@ -303,14 +305,19 @@ class DemodulationDialog(QDialog):
             if not self.selected_mode in self.file_label.text():
                 self.display_message("Error: Please select a file that matches the selected demodulation mode or change demodulation mode.")
                 return
+            
             # Collect dynamic parameters (e.g., AWGN SNR, Freq Drift)
             channel_params = {}
             for channel, widget in self.conditional_inputs.items():
                 if widget.isVisible():
+                    text = None
                     input_field = widget.findChild(QLineEdit)
-                    text =  input_field.text().strip()
-                    if input_field and text:
+                    if not input_field: # Special case for combobox
+                        text =  widget.currentText().strip()
+                    if (input_field and input_field.text().strip()):
                         channel_params[channel] = float(input_field.text().strip())
+                    elif text and text != "Select Fading Type":
+                        channel_params[channel] = text
                     else:
                         self.display_message(f"Error: Please enter a valid value for {channel}.")
                         return
@@ -327,8 +334,42 @@ class DemodulationDialog(QDialog):
 
             # Apply channels if any
             if self.selected_channels:
-                for channel in self.selected_channels:
-                    text = 0
+                for channel, value in channel_params.items():
+                    match channel:
+                        case "AWGN":
+                            AWGNChannel = Channel.SimpleGWNChannel_dB(SNR=value)
+                            signal = AWGNChannel.add_noise(signal)
+                            continue
+                        case "Fading":
+                            FlatFadingChannel = Channel.SimpleFlatFadingChannel(type=str(value).lower())
+                            if value == "Rician":
+                                assert "K value" in channel_params
+                                FlatFadingChannel.rician_k = float(channel_params["K value"])
+                            signal = FlatFadingChannel.add_fading(signal)
+                            continue
+                        case "Freq Drift":
+                            FreqDriftChannel = Channel.SimpleFrequencyDriftChannel(frequency_drift_rate=value)
+                            signal = FreqDriftChannel.add_drift(signal)
+                            continue
+                        case "Freq Offset":
+                            FreqOffsetChannel = Channel.SimpleFrequencyOffsetChannel(frequency_offset=value)
+                            signal = FreqOffsetChannel.add_offset(signal)
+                            continue
+                        case "Delay":
+                            DelayChannel = Channel.SimpleDelayChannel(delay=value)
+                            signal = DelayChannel.add_delay(signal)
+                            continue
+                        case "K value":
+                            # Case will only exist if Rician is selected but K is handled above
+                            continue
+                        case _:
+                            raise ValueError(f"Invalid channel: {channel}")
+
+            # Demodulate the signal
+            demodulated_signal = demodulator.demodulate(signal)
+            
+
+                    
                 
             # Display the results
             self.display_message("Demodulation complete!")

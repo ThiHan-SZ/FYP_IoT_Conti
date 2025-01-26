@@ -18,6 +18,18 @@ class SimpleGWNChannel_dB:
             nprseed(seed)
 
     def add_noise(self, signal):
+        """
+        Adds Gaussian noise to the input signal based on the specified Signal-to-Noise Ratio (SNR).
+
+        Args:
+            signal (np.array): The input signal to which noise is to be added.
+
+        Returns:
+            np.array: The noisy signal after adding Gaussian noise.
+
+        The noise is generated using the SNR provided during the class initialization.
+        The noise power is calculated based on the signal power and the SNR.
+        """
         signal_power = sum(abs(signal)**2) / len(signal)
         snr_linear = 10**(self.SNR/10)
         
@@ -35,9 +47,20 @@ class SimpleDelayChannel:
         Parameters:
         - delay (float): The fractional delay in samples that will be applied to the signal.
         """
+        assert delay > 0 and delay < 1
         self.delay = delay
 
     def add_delay(self, signal):
+        """
+        Applies a fractional delay to the signal using a filter with
+        'hamming' window and 'sinc' taps.
+
+        Parameters:
+        - signal (numpy.array): The signal to be delayed.
+
+        Returns:
+        - numpy.array: The delayed signal.
+        """
         # Create and apply fractional delay filter fractional delay, in signal
         N = 21 # number of taps
         n = arange(-N//2, N//2) # ...-3,-2,-1,0,1,2,3...
@@ -59,16 +82,26 @@ class SimpleFlatFadingChannel:
         """
         if type != "rayleigh" and type != "rician":
             raise ValueError("Invalid type, must be 'rayleigh' or 'rician'")
-        elif type == 'rician':
-            self.rician_k = int(input("Enter the Rician K factor: "))
+        self.rician_k = None
         self.type = type
-        
         self.seed = seed
         if seed is not None:
             nprseed(seed)
         
-    def add_fading(self, signal):
-        
+    def add_fading(self, signal):      
+        """
+        Applies fading to the input signal based on the specified channel type.
+
+        Parameters:
+        - signal (np.array): The input signal to which the fading effect will be applied.
+
+        Returns:
+        - np.array: The signal with applied fading effect.
+
+        The function supports two types of fading:
+        1. Rayleigh Fading: A diffuse multipath component is applied, modeled as a complex Gaussian process without a line of sight component.
+        2. Rician Fading: A combination of a line-of-sight component and a diffuse multipath component is applied, controlled by the Rician K-factor.
+        """
         if self.type == "rayleigh":
             # Diffuse component (Rayleigh fading)
             real = normal(0, 1, size=signal.shape)
@@ -76,6 +109,7 @@ class SimpleFlatFadingChannel:
             h = sqrt(real**2 + imag**2) / sqrt(2)
                 
         elif self.type == "rician":
+            assert self.rician_k is not None
             # Line-of-sight (LOS) component
             los_component = sqrt(self.rician_k / (self.rician_k + 1))
             
@@ -99,6 +133,15 @@ class SimpleFrequencyDriftChannel:
         self.frequency_drift_rate = frequency_drift_rate
         
     def add_drift(self, signal):
+        """
+        Applies a frequency drift to the input signal.
+
+        Parameters:
+        - signal (np.array): The input signal to which the frequency drift will be applied.
+
+        Returns:
+        - np.array: The signal with applied frequency drift.
+        """
         # Apply frequency drift to the signal
         signal = signal * exp(1j * 2 * pi * self.frequency_drift_rate * arange(len(signal)) / len(signal))
         return signal
@@ -114,6 +157,15 @@ class SimpleFrequencyOffsetChannel:
         self.frequency_offset = frequency_offset
         
     def add_offset(self, signal):
+        """
+        Applies a frequency offset to the input signal.
+
+        Parameters:
+        - signal (np.array): The input signal to which the frequency offset will be applied.
+
+        Returns:
+        - np.array: The signal with applied frequency offset.
+        """
         # Apply frequency offset to the signal
         signal = signal * exp(1j * 2 * pi * self.frequency_offset)
         return signal
