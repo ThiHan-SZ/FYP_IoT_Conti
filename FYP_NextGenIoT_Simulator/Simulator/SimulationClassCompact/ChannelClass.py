@@ -156,7 +156,7 @@ class SimpleFrequencyOffsetChannel:
         """
         self.frequency_offset = frequency_offset
         
-    def add_offset(self, signal):
+    def add_offset(self, signal, sampling_rate):
         """
         Applies a frequency offset to the input signal.
 
@@ -166,6 +166,7 @@ class SimpleFrequencyOffsetChannel:
         Returns:
         - np.array: The signal with applied frequency offset.
         """
+        time = arange(0, len(signal), dtype=float) / sampling_rate
         # Apply frequency offset to the signal
-        signal = signal * exp(1j * 2 * pi * self.frequency_offset)
+        signal = signal * exp(1j * 2 * pi * self.frequency_offset * time)
         return signal
