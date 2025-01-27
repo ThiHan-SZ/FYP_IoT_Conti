@@ -236,6 +236,7 @@ class ModulationDialog(QDialog):
                 GraphViewer.add_figure(IQplot_fig)
             
             GraphViewer.exec_()
+            GraphViewer.clear_figures()
             
                 
         except ValueError as e:
