@@ -6,6 +6,8 @@ import re
 
 import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
+from Pages.GraphDialog import ScrollableGraphDialog
+
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
 import Simulator.SimulationClassCompact.ChannelClass as Channel
 
@@ -309,6 +311,8 @@ class DemodulationDialog(QDialog):
 
     def run_simulation(self):
         try:
+            GraphViewer = ScrollableGraphDialog(self)
+            
             if not self.bit_rate_input.text():
                 self.display_message("Error: Please enter a bit rate.")
                 return
@@ -347,9 +351,12 @@ class DemodulationDialog(QDialog):
             file_path = self.file_path
 
             sampling_rate, signal = Demodulator.readfile(file_path)
+            
 
             # Initialize Demodulator
             demodulator = Demodulator(mode, bit_rate, sampling_rate)
+            demodulator.plot_IQ = self.plot_iq
+            demodulator.plot_constellation = self.plot_constellation
 
             # Apply channels if any
             if self.selected_channels:
@@ -390,7 +397,16 @@ class DemodulationDialog(QDialog):
             # Demapping the signal
             message, bit_array = demodulator.demapping(demodulated_signal)
 
-                    
+            if self.plot_iq or self.plot_constellation:
+                demodulator.ax = demodulator.plot_setup(demodulator.fig)
+                demodulator.auto_plot(demodulated_signal)
+                GraphViewer.add_figure(demodulator.fig)
+                GraphViewer.exec_()
+                GraphViewer.clear_figures()
+                demodulator.fig.clear()
+            
+            self.display_message(f"Received Message: {message}")
+            self.display_message(f"Number of Bits: {len(bit_array)}")
                 
             # Display the results
             self.display_message("Demodulation complete!")

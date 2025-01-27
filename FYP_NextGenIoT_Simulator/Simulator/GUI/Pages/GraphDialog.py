@@ -43,3 +43,13 @@ class ScrollableGraphDialog(QDialog):
 
         # Add the canvas to the container layout
         self.container_layout.addWidget(canvas)
+        
+    def clear_figures(self):
+        """
+        Clears all figures from the dialog.
+        """
+        for i in reversed(range(self.container_layout.count())): 
+            item = self.container_layout.itemAt(i)
+            if item.widget():
+                item.widget().deleteLater()
+            

@@ -59,7 +59,8 @@ class Demodulator:
             tuple: A tuple containing the sample rate of the .wav file and its data.
         '''
         rate, data = wav.read(filename)
-        return rate, data
+        # Data * 2 to remove storage halving.
+        return rate, data * 2
     
     def downconverter(self, signal):
         t = np.linspace(0, len(signal)/self.sampling_rate, len(signal), endpoint=False)
@@ -229,11 +230,16 @@ class Demodulator:
         y_ticks = np.arange(-scaler, scaler+1, 2)
         self.ax['ConstPlot'].set_xticks(x_ticks)
         self.ax['ConstPlot'].set_yticks(y_ticks)
-        
+    
+    def auto_plot(self, demod_signal):
+        """
+        Automatically plots the IQ components and/or the received constellation.
 
-    def demod_and_plot(self, signal):
-        demod_signal = self.demodulate(signal)
+        Args:
+            demod_signal (np.array): The demodulated signal.
+        """
         if self.plot_IQ:
             self.plot(demod_signal)
         if self.plot_constellation:
             self.received_constellation(demod_signal)
+        
