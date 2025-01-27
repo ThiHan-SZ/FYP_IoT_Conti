@@ -381,7 +381,7 @@ class DemodulationDialog(QDialog):
                             continue
                         case "Freq Offset":
                             FreqOffsetChannel = Channel.SimpleFrequencyOffsetChannel(frequency_offset=value)
-                            signal = FreqOffsetChannel.add_offset(signal)
+                            signal = FreqOffsetChannel.add_offset(signal, sampling_rate)
                             continue
                         case "Delay":
                             DelayChannel = Channel.SimpleDelayChannel(delay=value)
