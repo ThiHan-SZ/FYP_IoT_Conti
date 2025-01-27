@@ -231,11 +231,13 @@ class DemodulationDialog(QDialog):
         self.plot_iq_checkbox = QCheckBox("Plot I and Q Components", self)
         self.plot_iq_checkbox.setFont(font)
         self.plot_iq_checkbox.stateChanged.connect(self.handle_plot_iq_checkbox)  
+        self.plot_iq = False
         self.main_layout.addWidget(self.plot_iq_checkbox)
         
         self.constellation_checkbox = QCheckBox("Plot Constellation", self)
         self.constellation_checkbox.setFont(font)
         self.constellation_checkbox.stateChanged.connect(self.handle_constellation_checkbox)  # Connect to handler
+        self.plot_constellation = False
         self.main_layout.addWidget(self.constellation_checkbox)
 
         # Run Demodulation Button
