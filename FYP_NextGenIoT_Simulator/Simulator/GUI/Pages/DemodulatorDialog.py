@@ -73,7 +73,7 @@ class DemodulationDialog(QDialog):
 
         self.scroll_container = QWidget()
         self.scroll_container.setStyleSheet("""
-            background-color:rgb(71, 70, 70); /* Set the background color for the container */
+            background-color:#464646; /* Set the background color for the container */
         """)
 
         self.scroll_layout = QVBoxLayout(self.scroll_container)
