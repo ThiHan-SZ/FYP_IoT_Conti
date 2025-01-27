@@ -387,6 +387,8 @@ class DemodulationDialog(QDialog):
             # Demodulate the signal
             demodulated_signal = demodulator.demodulate(signal)
             
+            # Demapping the signal
+            message, bit_array = demodulator.demapping(demodulated_signal)
 
                     
                 
