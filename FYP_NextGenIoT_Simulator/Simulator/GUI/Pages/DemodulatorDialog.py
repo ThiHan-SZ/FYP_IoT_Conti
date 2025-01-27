@@ -73,7 +73,7 @@ class DemodulationDialog(QDialog):
 
         self.scroll_container = QWidget()
         self.scroll_container.setStyleSheet("""
-            background-color:rgb(71, 70, 70); /* Set the background color for the container */
+            background-color:rgb(50, 50, 50); /* Set the background color for the container */
         """)
 
         self.scroll_layout = QVBoxLayout(self.scroll_container)
@@ -90,11 +90,12 @@ class DemodulationDialog(QDialog):
         self.fading_selection = QComboBox(self)
         self.fading_selection.setStyleSheet("""
             QComboBox {
-                background-color: #ffffff;
-                color: #000000;
+                background-color: #8e8e8e;
+                color: #ffffff;
                 border: 1px solid #aaaaaa;
             }
         """)
+        
         
         fading_widget = QWidget()
         fading_widget.setLayout(fading_layout)
@@ -134,6 +135,11 @@ class DemodulationDialog(QDialog):
         bitrate_layout = QHBoxLayout()
         bitrate_label = QLabel("Bit Rate:", font=font)
         self.bit_rate_input = QLineEdit(self)
+        self.bit_rate_input.setStyleSheet("""
+            QLineEdit:focus {
+                border: 2px solid #2b8cff; /* Highlight border when focused */
+            }
+        """)
         self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
         self.bit_rate_input.setFont(font)
         self.bit_rate_input.setFixedWidth(400)
@@ -266,6 +272,17 @@ class DemodulationDialog(QDialog):
         label = QLabel(label_text)
         label.setFont(QFont("SF Pro", 10))
         input_field = QLineEdit(self)
+        input_field.setStyleSheet("""
+            QLineEdit {
+                background-color: #5e5e5e;  /* Lighter gray */
+                color: #ffffff;           /* White text */
+                border-radius: 5px;       /* Rounded edges */
+                padding: 5px;             /* Padding for better spacing */
+            }
+            QLineEdit:focus {
+                border: 2px solid #2b8cff; /* Highlight border when focused */
+            }
+        """)
         input_field.setPlaceholderText(placeholder_text)
         input_field.setFont(QFont("SF Pro", 10))
         input_field.setFixedWidth(400)
@@ -417,4 +434,4 @@ class DemodulationDialog(QDialog):
             self.display_message(f"ValueError: {str(e)}")
         except Exception as e:
             error_details = format_exc()
-            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
+            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")  
