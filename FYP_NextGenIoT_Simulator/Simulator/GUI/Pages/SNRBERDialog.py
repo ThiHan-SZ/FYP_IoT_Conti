@@ -95,7 +95,7 @@ class SNRBERDialog(QDialog):
         char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
 
         self.char_slider = QSlider(Qt.Horizontal, self)
-        self.char_slider.setRange(1, 100)  #1000 - 100000
+        self.char_slider.setRange(0, 100)  #0 - 20000
         self.char_slider.setSingleStep(1)
         self.char_slider.setValue(1) 
         self.char_slider.setStyleSheet("""
@@ -118,7 +118,7 @@ class SNRBERDialog(QDialog):
             """)
         self.char_slider.valueChanged.connect(self.update_char_label)
 
-        self.char_label = QLabel("1000", self)
+        self.char_label = QLabel("0", self)
         self.char_label.setFont(font)
         self.char_label.setAlignment(Qt.AlignCenter)
 
@@ -195,8 +195,8 @@ class SNRBERDialog(QDialog):
             self.display_message(f"{mod_name} selected")
 
     def update_char_label(self, value):
-            """Map slider value to increments of 1000"""
-            char_count = value * 1000  
+            """Map slider value to increments of 200"""
+            char_count = value * 200
             self.char_label.setText(f"{char_count:,}") 
 
     def run_simulation(self):
