@@ -91,8 +91,17 @@ class DemodulationDialog(QDialog):
         self.fading_selection.setStyleSheet("""
             QComboBox {
                 background-color: #8e8e8e;
-                color: #ffffff;
+                color: #000000;
                 border: 1px solid #aaaaaa;
+                border-radius: 5px;
+            }
+            QComboBox QAbstractItemView {
+                border: 2px solid darkgray;
+                border-radius: 5px;
+                selection-background-color: lightgray;
+                selection-color: black;
+                background-color: #8e8e8e;
+                color: #000000;
             }
         """)
         
