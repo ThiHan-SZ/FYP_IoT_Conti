@@ -44,6 +44,7 @@ class Demodulator:
         #Plotting Parameters
         self.plot_IQ = False
         self.plot_constellation = False
+        self.plot_EyeDiagram = False
         self.fig = plt.figure('Demodulator', constrained_layout=True)
         self.ax = None
         
@@ -179,8 +180,48 @@ class Demodulator:
     
     #### Plotting Functions ####    
     def plot_setup(self, fig):
+        """
+        Configures and returns a dictionary of plot axes based on the plotting flags set in the object.
+
+        Parameters:
+            fig (matplotlib.figure.Figure): The figure object to which the plots will be added.
+
+        Returns:
+            Dict: An dictionary containing the axes for the plots. Keys are 'Iplot', 'Qplot', and 'ConstPlot' 
+                depending on the plotting configuration. Returns None if no plots are to be generated.
+
+        The function sets up subplots in the provided figure based on the modulation mode and plotting flags:
+        - If both Eye Diagram and Constellation plots are enabled:
+            - For non-BPSK modulation modes, creates a grid with 3 rows and 2 columns for I, Q, and Constellation plots.
+            - For BPSK modulation, creates a grid with a single row for I and Constellation plots.
+        - If only Eye Diagram plots are enabled:
+            - For non-BPSK modulation modes, creates a grid with 1 row and 2 columns for I and Q plots.
+            - For BPSK modulation, creates a grid with a single row for the I plot.
+        - If both IQ and Constellation plots are enabled, creates a similar configuration as Eye Diagram and Constellation.
+        - If only IQ plots are enabled, creates a grid for I and Q plots.
+        - If only Constellation plots are enabled, creates a grid for the Constellation plot.
+        - Closes all figures and returns None if no plots are enabled.
+        """
         axes = {}
-        if self.plot_IQ and self.plot_constellation:
+        if self.plot_EyeDiagram and self.plot_constellation: #If EyeDiagram and Constellation are both True
+            if self.modulation_mode != 'BPSK':
+                gridspec = fig.add_gridspec(nrows=3, ncols=2)
+                axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+                axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
+                axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
+            else:
+                gridspec = fig.add_gridspec(nrows=1, ncols=1)
+                axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+                axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
+        elif self.plot_EyeDiagram: #If EyeDiagram is True
+            if self.modulation_mode != 'BPSK':
+                gridspec = fig.add_gridspec(nrows=1, ncols=2)
+                axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+                axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
+            else:
+                gridspec = fig.add_gridspec(nrows=1, ncols=1)
+                axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
+        elif self.plot_IQ and self.plot_constellation:
             gridspec = fig.add_gridspec(nrows=3, ncols=2)
             axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
             axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
@@ -197,7 +238,7 @@ class Demodulator:
             return None
         return axes
 
-    def plot(self, demod_signal):
+    def received_IQ(self, demod_signal):
         delay = self.demodulator_total_delay
         t_axis = np.linspace(0, len(demod_signal)/self.sampling_rate, len(demod_signal), endpoint=False)
         t_samples = t_axis[delay:-(6*self.samples_per_symbol):self.samples_per_symbol]
@@ -231,6 +272,25 @@ class Demodulator:
         self.ax['ConstPlot'].set_xticks(x_ticks)
         self.ax['ConstPlot'].set_yticks(y_ticks)
     
+    def eye_diagram(self, demod_signal):
+        demod_signal_samples = demod_signal[self.demodulator_total_delay:-6*self.samples_per_symbol:self.samples_per_symbol]
+        i_samples = []
+        q_samples = []
+        BitLen = len(demod_signal_samples)
+        for i in range(BitLen - 2):
+            i_samples.append(demod_signal[self.demodulator_total_delay + self.samples_per_symbol * i + np.arange(2 * self.samples_per_symbol)].real)
+            if self.modulation_mode != 'BPSK':
+                q_samples.append(demod_signal[self.demodulator_total_delay + self.samples_per_symbol * i + np.arange(2 * self.samples_per_symbol)].imag)
+
+        i_samples = np.array(i_samples).T
+        q_samples = np.array(q_samples).T if self.modulation_mode != 'BPSK' else None
+        time_axis = np.linspace(-self.symbol_period, self.symbol_period, 2 * self.samples_per_symbol)
+        if self.modulation_mode != 'BPSK':
+            self.ax['Iplot'].plot(time_axis, i_samples, color='r')
+            self.ax['Qplot'].plot(time_axis, q_samples, color='b')
+        else:
+            self.ax['Iplot'].plot(time_axis, i_samples, color='r')
+        
     def auto_plot(self, demod_signal):
         """
         Automatically plots the IQ components and/or the received constellation.
@@ -238,8 +298,10 @@ class Demodulator:
         Args:
             demod_signal (np.array): The demodulated signal.
         """
-        if self.plot_IQ:
-            self.plot(demod_signal)
+        if self.plot_IQ and not self.plot_EyeDiagram:
+            self.received_IQ(demod_signal)
         if self.plot_constellation:
             self.received_constellation(demod_signal)
+        if self.plot_EyeDiagram:
+            self.eye_diagram(demod_signal)
         
