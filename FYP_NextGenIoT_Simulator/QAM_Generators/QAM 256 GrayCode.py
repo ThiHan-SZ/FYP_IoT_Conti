@@ -27,14 +27,14 @@ for i in range(16):  # I component (In-Phase)
 
         NQAM256[symbol] = {'I': I_values[i]/(2/3*(256-1))**0.5, 'Q': Q_values[j]/(2/3*(256-1))**0.5}
 
-with open('NQAM256.pkl', 'wb') as f:
+'''with open('NQAM256.pkl', 'wb') as f:
     pickle.dump(NQAM256, f)
 
 with open('RQAM256.pkl', 'wb') as f:
     pickle.dump(RQAM256, f)
 
 with open('QAM256.pkl', 'wb') as f:
-    pickle.dump(QAM256, f)
+    pickle.dump(QAM256, f)'''
 
 with open('QAM256.pkl', 'rb') as f:
     QAM256_r = pickle.load(f)
