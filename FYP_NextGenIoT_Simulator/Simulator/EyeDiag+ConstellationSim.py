@@ -55,10 +55,10 @@ def main():
     carrier_frequency = int(input("Enter carrier frequency: "))
 
     modulator = Modulator(modulation_mode, bit_rate, carrier_frequency)
-    demodulator = Demodulator(modulation_mode, bit_rate, carrier_frequency)
+    demodulator = Demodulator(modulation_mode, bit_rate, modulator.sampling_rate)
 
-    with open('FYP_NextGenIoT_Simulator/TestcaseFiles/TinySpeare.txt', 'r') as file:
-        message = file.read()[:1000]
+    with open('FYP_NextGenIoT_Simulator/TestcaseFiles/UniformMax2ByteUTF8.txt', 'r',encoding="utf8") as file:
+        message = file.read()[:5000]
 
     bitstream = modulator.msgchar2bit(message)
 
@@ -66,21 +66,15 @@ def main():
 
     _, modulated_signal = modulator.modulate(bitstream)
 
-    '''channel = SimpleGWNChannel_dB(10)
-    noisy_modulated = channel.add_noise(modulated_signal)'''
-
     demodulated_signal = demodulator.demodulate(modulated_signal)
 
-    samples_per_symbol = demodulator.samples_per_symbol
-    symbol_period = demodulator.symbol_period
-    delay = demodulator.demodulator_total_delay
-    order = demodulator.order
+    demodulator.plot_EyeDiagram = True
+    demodulator.plot_constellation = True
 
-    fig = plt.figure()
-    axes = plot_setup(modulation_mode, fig)
-
-    received_constellation(demodulated_signal, order, samples_per_symbol, delay, axes)
-    plot_eye_diagram(demodulated_signal, bitstream, modulation_mode, order, samples_per_symbol, delay, symbol_period, axes)
+    demodulator.ax = demodulator.plot_setup(demodulator.fig)
+    
+    demodulator.auto_plot(demodulated_signal)
+    
     plt.show()
 
 
