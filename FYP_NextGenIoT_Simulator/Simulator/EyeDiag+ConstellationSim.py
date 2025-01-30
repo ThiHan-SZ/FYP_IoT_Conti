@@ -14,7 +14,7 @@ def plot_setup(mod_mode, fig):
         axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
         axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
     else:
-        gridspec = fig.add_gridspec(nrows=1, ncols=1)
+        gridspec = fig.add_gridspec(nrows=2, ncols=1)
         axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
         axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
     return axes
@@ -56,9 +56,12 @@ def main():
 
     modulator = Modulator(modulation_mode, bit_rate, carrier_frequency)
     demodulator = Demodulator(modulation_mode, bit_rate, modulator.sampling_rate)
+    
+    modulator.RRC_alpha = 0.35
+    demodulator.RRC_alpha = 0.35
 
     with open('FYP_NextGenIoT_Simulator/TestcaseFiles/UniformMax2ByteUTF8.txt', 'r',encoding="utf8") as file:
-        message = file.read()[:5000]
+        message = file.read()[:1000]
 
     bitstream = modulator.msgchar2bit(message)
 
@@ -68,8 +71,9 @@ def main():
 
     demodulated_signal = demodulator.demodulate(modulated_signal)
 
-    demodulator.plot_EyeDiagram = True
+    demodulator.plot_EyeDiagram = False
     demodulator.plot_constellation = True
+    demodulator.plot_IQ = True
 
     demodulator.ax = demodulator.plot_setup(demodulator.fig)
     
