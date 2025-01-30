@@ -250,24 +250,23 @@ class ModulationDialog(QDialog):
             self.file_path = file_path
             self.display_message("File Selection Successful")
 
-            # Read the file and determine the max number of characters
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
-                    self.max_chars = len(content.strip())  # Trim whitespace & count chars accurately
+                    self.max_chars = len(content.strip())  
 
                     if self.max_chars > 0:
-                        # Set the range of the slider to the number of characters in the file
+                        # slider range to max char
                         self.char_slider.setRange(1, self.max_chars)
-                        self.char_slider.setValue(1)  # Set the default position
+                        self.char_slider.setValue(1)  
                         self.char_slider.setEnabled(True)
 
-                        # Unhide the slider components
+                        # Unhide the slider
                         self.char_input_label.show()
                         self.char_slider.show()
                         self.char_label.show()
 
-                        self.update_char_label(1)  # Update label to match slider default
+                        self.update_char_label(1) 
                     else:
                         self.display_message("The selected file is empty. Please choose a different file.")
                         self.char_input_label.hide()
@@ -278,7 +277,7 @@ class ModulationDialog(QDialog):
                 self.file_label.setText("No file selected")
                 self.file_path = None
 
-                # Hide the slider components if there's an error
+                # Hide slider
                 self.char_input_label.hide()
                 self.char_slider.hide()
                 self.char_label.hide()
@@ -286,7 +285,7 @@ class ModulationDialog(QDialog):
             self.file_label.setText("No file selected")
             self.file_path = None
 
-            # Hide the slider components if no file is selected
+            # Hide slider 
             self.char_input_label.hide()
             self.char_slider.hide()
             self.char_label.hide()
