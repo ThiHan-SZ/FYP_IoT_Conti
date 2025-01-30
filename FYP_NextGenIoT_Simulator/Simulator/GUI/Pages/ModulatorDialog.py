@@ -20,8 +20,8 @@ class ModulationDialog(QDialog):
         self.plot_iq = False
         self.save_signal = False
         self.file_disabled_notified = False
-        self.file_path = None  # Stores the selected file path
-        self.max_chars = 0  # Stores max character count in the selected fil
+        self.file_path = None  
+        self.max_chars = 0 
 
         # Apply dark theme styling for the dialog
         self.setStyleSheet("""
@@ -116,7 +116,7 @@ class ModulationDialog(QDialog):
         self.main_layout.addWidget(self.message_label)  
         self.message_input = QLineEdit(self)
         self.message_input.setPlaceholderText("Enter message to modulate")
-        self.message_input.textChanged.connect(self.disable_file_selection)  # Disable file selection when typing
+        self.message_input.textChanged.connect(self.disable_file_selection)  
         self.message_input.setFont(font)
         self.main_layout.addWidget(self.message_input)
 
