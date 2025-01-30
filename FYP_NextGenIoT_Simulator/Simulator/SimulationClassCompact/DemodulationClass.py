@@ -3,7 +3,7 @@ import scipy.signal as sig
 from scipy import spatial as spysp
 import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
-import commpy
+from .RRCFilter import RRCFilter
 import pickle
 
 
@@ -48,6 +48,8 @@ class Demodulator:
         self.fig = plt.figure('Demodulator', constrained_layout=True)
         self.ax = None
         
+        #RRC Filter Parameters
+        self.RRC_alpha = 0.35
     @staticmethod
     def readfile(filename):
         '''
@@ -97,7 +99,12 @@ class Demodulator:
 
         ##### Matched Filtering #####
         RRC_delay = 3*self.symbol_period
-        _, rrc = commpy.filters.rrcosfilter(N=int(2*self.sampling_rate*RRC_delay),alpha=0.35,Ts=self.symbol_period, Fs=self.sampling_rate)
+        _, rrc = RRCFilter(
+            N=int(2*self.sampling_rate*RRC_delay),
+            alpha=self.RRC_alpha,
+            Ts=self.symbol_period, 
+            Fs=self.sampling_rate
+        )
 
         baseband_signal_lp = I_lp + 1j*Q_lp
         RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
@@ -210,7 +217,7 @@ class Demodulator:
                 axes['Qplot'] = fig.add_subplot(gridspec[0, 1])
                 axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
             else:
-                gridspec = fig.add_gridspec(nrows=1, ncols=1)
+                gridspec = fig.add_gridspec(nrows=2, ncols=1)
                 axes['Iplot'] = fig.add_subplot(gridspec[0, 0])
                 axes['ConstPlot'] = fig.add_subplot(gridspec[1:, :])
         elif self.plot_EyeDiagram: #If EyeDiagram is True
