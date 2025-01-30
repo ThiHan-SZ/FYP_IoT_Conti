@@ -1,9 +1,8 @@
-import commpy.filters
 from scipy.io import wavfile as wav
 import numpy as np
 import scipy.signal as sig
 import pickle
-import commpy
+from .RRCFilter import RRCFilter
 
 from matplotlib import pyplot as plt
 
@@ -34,6 +33,9 @@ class Modulator:
         #IQ Return and Save Parameters
         self.IQ_Return = False
         self.save_signal = False
+        
+        #RRC Filter Parameters
+        self.RRC_alpha = 0.35
 
     @staticmethod
     def msgchar2bit_static(msg):
@@ -135,7 +137,7 @@ class Modulator:
                 bitstr (str): Bit string to be modulated
         '''
 
-        with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\N{self.modulation_mode}.pkl', 'rb') as f:
+        with open(rf'FYP_NextGenIoT_Simulator\QAM_LUT_pkl\{self.modulation_mode}.pkl', 'rb') as f:
             qam_constellations = pickle.load(f)
 
         bitgroups = [''.join(bitstr[i:i+self.order]) for i in range(0, len(bitstr[:-2]), self.order)]
@@ -172,9 +174,9 @@ class Modulator:
         RRC_delay = 3 * self.symbol_period
         
         # Simulated SRRC filter and pulse shaping (replace with actual filter for real use)
-        _, rrc = commpy.filters.rrcosfilter(
+        _, rrc = RRCFilter(
             N=int(2*self.sampling_rate*RRC_delay),
-            alpha=0.35,
+            alpha=self.RRC_alpha,
             Ts=self.symbol_period, 
             Fs=self.sampling_rate
         )
