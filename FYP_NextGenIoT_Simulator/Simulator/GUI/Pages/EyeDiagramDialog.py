@@ -12,7 +12,6 @@ class EyeDiagramDialog(QDialog):
         self.setWindowTitle("Eye Diagram")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Apply dark theme styling
         self.setStyleSheet("""
             QDialog { background-color: #2e2e2e; color: #ffffff; }
             QLabel, QLineEdit, QPushButton, QTextEdit, QCheckBox { color: #ffffff; }
@@ -33,6 +32,7 @@ class EyeDiagramDialog(QDialog):
 
         self.main_layout = QVBoxLayout(self)
         modulation_type_layout = QVBoxLayout()
+        channel_label = QLabel("Channel Selection:", font=font)
 
         # Buttons for Modulation Types
         self.modulation_buttons = {
@@ -55,6 +55,7 @@ class EyeDiagramDialog(QDialog):
 
         modulation_buttons_layout.addStretch()
         modulation_type_layout.addLayout(modulation_buttons_layout)
+        self.main_layout.addWidget(channel_label)
         self.main_layout.addLayout(modulation_type_layout)
         self.main_layout.addSpacing(50)
 
@@ -87,15 +88,15 @@ class EyeDiagramDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Slider for Number of Input Characters
+        # Slider for Input Characters
         char_input_layout = QVBoxLayout()
         char_input_label = QLabel("Number of Input Characters:", font=font)
         char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
 
         self.char_slider = QSlider(Qt.Horizontal, self)
-        self.char_slider.setRange(1, 100)  # Range mapped to 1000 - 100000
+        self.char_slider.setRange(1, 100)  
         self.char_slider.setSingleStep(1)
-        self.char_slider.setValue(1)  # Default value corresponds to 1000
+        self.char_slider.setValue(1)  
         self.char_slider.setStyleSheet("""
             QSlider::groove:horizontal {
                 background: #3e3e3e;
@@ -150,7 +151,6 @@ class EyeDiagramDialog(QDialog):
         self.main_layout.addWidget(self.output_display)
 
     def select_modulation_button(self, mode):
-        """Ensure only one modulation button is selected at a time."""
         # Reset all buttons
         for name, button in self.modulation_buttons.items():
             button.setProperty("selected", "false")
@@ -163,15 +163,12 @@ class EyeDiagramDialog(QDialog):
         self.output_display.append(f"{mode} selected")
 
     def update_char_label(self, value):
-        """Update the label for the number of input characters."""
         char_count = value * 1000  # Map range 1-100 to 1000-100000
         self.char_label.setText(f"{char_count:,}")
 
     def display_message(self, message):
-        """Append a message to the output display."""
         self.output_display.append(message)
 
     def select_modulation_mode(self, mode):
-        """Set selected modulation mode and update the display."""
         self.selected_mode = mode
         self.display_message(f"Selected Modulation Mode: {self.selected_mode}")

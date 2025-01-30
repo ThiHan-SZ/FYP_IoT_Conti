@@ -204,9 +204,9 @@ class DemodulationDialog(QDialog):
         self.file_label = QLabel("No file selected", self)
         self.file_path = None
         self.file_label.setFont(font)
-        file_button = QPushButton("Select File", self)
+        file_button = QPushButton("Select a .wav File", self)
         file_button.setFont(font)
-        file_button.setFixedSize(200, 40)
+        file_button.setFixedSize(250, 50)
 
         # file selection logic
         def select_file():
@@ -232,8 +232,6 @@ class DemodulationDialog(QDialog):
             else:
                 self.file_label.setText("No file selected")
                 
-
-
         file_button.clicked.connect(select_file)
 
         file_selection_layout.addWidget(self.file_label)
