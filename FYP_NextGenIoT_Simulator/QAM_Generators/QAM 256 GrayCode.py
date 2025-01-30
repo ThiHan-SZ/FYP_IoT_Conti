@@ -36,7 +36,7 @@ with open('RQAM256.pkl', 'wb') as f:
 with open('QAM256.pkl', 'wb') as f:
     pickle.dump(QAM256, f)'''
 
-with open('QAM256.pkl', 'rb') as f:
+with open(r'FYP_NextGenIoT_Simulator/QAM_LUT_pkl/QAM256.pkl', 'rb') as f:
     QAM256_r = pickle.load(f)
 
 for i in QAM256_r.items():
