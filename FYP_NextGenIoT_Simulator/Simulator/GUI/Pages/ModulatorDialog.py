@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QMessageBox, QFileDialog, QSlider
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, QFileDialog, QSlider
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
@@ -6,8 +6,6 @@ from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
 from traceback import format_exc
 
 import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
-import re
-
 
 from Simulator.SimulationClassCompact.ModulationClass import Modulator
 class ModulationDialog(QDialog):
@@ -272,6 +270,7 @@ class ModulationDialog(QDialog):
                         self.char_input_label.hide()
                         self.char_slider.hide()
                         self.char_label.hide()
+                        
             except Exception as e:
                 self.display_message(f"Error reading the file: {str(e)}")
                 self.file_label.setText("No file selected")
@@ -322,7 +321,7 @@ class ModulationDialog(QDialog):
             carrier_freq = self.carrier_freq_input.text()
             bit_rate = self.bit_rate_input.text()
             message = self.message_input.text()
-
+            
             # Validate inputs
             if not carrier_freq or not bit_rate or not self.selected_mode :
                 self.display_message("Please provide all inputs and select a modulation mode.")
@@ -331,6 +330,11 @@ class ModulationDialog(QDialog):
             if (not self.message_input.text() and not self.file_path) or (self.message_input.text() and self.file_path):
                 self.display_message("Please enter a message OR select a text file.")
                 return
+            
+            if not message and self.char_label.text():
+                slicer = int(self.char_label.text())
+                with open(self.file_path, 'r', encoding='utf-8') as file:
+                    message = file.read()[:slicer]
 
             carrier_freq = int(carrier_freq)
             bit_rate = int(bit_rate)
