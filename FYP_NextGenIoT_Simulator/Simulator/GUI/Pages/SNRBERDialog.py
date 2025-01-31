@@ -1,9 +1,18 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLineEdit, QLabel, QTextEdit, QSlider
+    QLineEdit, QLabel, QTextEdit, QSlider, QFileDialog
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from traceback import format_exc
+
+import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+from Simulator.SimulationClassCompact.ModulationClass import Modulator as Mod
+from Simulator.SimulationClassCompact.DemodulationClass import Demodulator as Demod
+from Simulator.SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
+
+import matplotlib.pyplot as plt
+from numpy import arange
 
 class SNRBERDialog(QDialog):
     def __init__(self):
@@ -28,12 +37,13 @@ class SNRBERDialog(QDialog):
         """)
 
         font = QFont("SF Pro", 10)
+        section_font = QFont("SF Pro", 12, QFont.Bold)
         self.selected_modulations = set()  
 
         self.main_layout = QVBoxLayout(self)
 
         modulation_type_layout = QVBoxLayout()
-        modulation_type_label = QLabel("Modulation Types for SNR BER Test:", font=font)
+        modulation_type_label = QLabel("Modulation Types for SNR BER Test:", font=section_font)
         modulation_type_layout.addWidget(modulation_type_label, alignment=Qt.AlignLeft)
 
         # Buttons for Modulation Types
@@ -89,47 +99,72 @@ class SNRBERDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Replace the QDial section in `SNRBERDialog` with the following:
-        char_input_layout = QVBoxLayout()
-        char_input_label = QLabel("Number of Input Characters:", font=font)
-        char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
+        # Text File Select for Modulation
+        # File Selection Section
+        self.file_selection_layout = QHBoxLayout()
+        self.file_label = QLabel("No file selected", self)
+        self.file_path = None
+        self.file_label.setFont(font)
+        self.file_button = QPushButton("Select a .txt File", self)
+        self.file_button.setFont(font)
+        self.file_button.setFixedSize(250, 50)
+                
+        self.file_button.clicked.connect(self.select_file)
+
+        self.file_selection_layout.addWidget(self.file_label)
+        self.file_selection_layout.addSpacing(20)
+        self.file_selection_layout.addWidget(self.file_button)
+        self.file_selection_layout.addStretch()
+        self.main_layout.addLayout(self.file_selection_layout)
+        
+        # **Character Slider Bar (Initially Hidden)**
+        self.char_input_layout = QVBoxLayout()
+        self.char_input_label = QLabel("Number of Input Characters:", font=font)
+        self.char_input_layout.addWidget(self.char_input_label, alignment=Qt.AlignLeft)
 
         self.char_slider = QSlider(Qt.Horizontal, self)
-        self.char_slider.setRange(0, 100)  #0 - 20000
+        self.char_slider.setRange(0, 1)  
         self.char_slider.setSingleStep(1)
-        self.char_slider.setValue(1) 
+        self.char_slider.setValue(0)
+        self.char_slider.setEnabled(False)  
         self.char_slider.setStyleSheet("""
-                QSlider::groove:horizontal {
-                    background: #3e3e3e;
-                    height: 10px;
-                    border-radius: 5px;
-                }
-                QSlider::handle:horizontal {
-                    background: #2b8cff;
-                    width: 20px;
-                    height: 20px;
-                    margin: -5px 0;
-                    border-radius: 10px;
-                }
-                QSlider::sub-page:horizontal {
-                    background: #2b8cff;
-                    border-radius: 5px;
-                }
-            """)
+            QSlider::groove:horizontal {
+                background: #3e3e3e;
+                height: 10px;
+                border-radius: 5px;
+            }
+            QSlider::handle:horizontal {
+                background: #2b8cff;
+                width: 20px;
+                height: 20px;
+                margin: -5px 0;
+                border-radius: 10px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #2b8cff;
+                border-radius: 5px;
+            }
+        """)
         self.char_slider.valueChanged.connect(self.update_char_label)
 
         self.char_label = QLabel("0", self)
         self.char_label.setFont(font)
         self.char_label.setAlignment(Qt.AlignCenter)
 
-        char_input_layout.addWidget(self.char_slider)
-        char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
-        self.main_layout.addLayout(char_input_layout)
+        self.char_input_layout.addWidget(self.char_slider)
+        self.char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
+
+        self.char_input_label.hide()
+        self.char_slider.hide()
+        self.char_label.hide()
+
+        self.main_layout.addLayout(self.char_input_layout)
+        self.setLayout(self.main_layout)
 
 
         # SNR Lower and Upper Bound Inputs
         snr_input_layout = QVBoxLayout()
-        snr_label = QLabel("SNR Bounds:", font=font)
+        snr_label = QLabel("SNR Bounds:", font=section_font)
         snr_input_layout.addWidget(snr_label, alignment=Qt.AlignLeft)
 
         # SNR Lower Bound
@@ -194,13 +229,139 @@ class SNRBERDialog(QDialog):
             self.selected_modulations.add(mod_name)
             self.display_message(f"{mod_name} selected")
 
-    def update_char_label(self, value):
-            """Map slider value to increments of 200"""
-            char_count = value * 200
-            self.char_label.setText(f"{char_count:,}") 
+    def select_file(self):
+        # File selection
+        file_dialog = QFileDialog(self)
+        file_path, _ = file_dialog.getOpenFileName(self, "Select a File", "", "Text Files (*.txt)")
 
+        if file_path:
+            max_length = 50
+            truncated_path = f"...{file_path[-max_length:]}" if len(file_path) > max_length else file_path
+
+            self.file_label.setText(truncated_path)
+            self.file_path = file_path
+            self.display_message("File Selection Successful")
+
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    self.max_chars = len(content.strip())  
+
+                    if self.max_chars > 0:
+                        # slider range to max char
+                        self.char_slider.setRange(1, self.max_chars)
+                        self.char_slider.setValue(1)  
+                        self.char_slider.setEnabled(True)
+
+                        # Unhide the slider
+                        self.char_input_label.show()
+                        self.char_slider.show()
+                        self.char_label.show()
+
+                        self.update_char_label(1) 
+                    else:
+                        self.display_message("The selected file is empty. Please choose a different file.")
+                        self.char_input_label.hide()
+                        self.char_slider.hide()
+                        self.char_label.hide()
+            except Exception as e:
+                self.display_message(f"Error reading the file: {str(e)}")
+                self.file_label.setText("No file selected")
+                self.file_path = None
+
+                # Hide slider
+                self.char_input_label.hide()
+                self.char_slider.hide()
+                self.char_label.hide()
+        else:
+            self.file_label.setText("No file selected")
+            self.file_path = None
+
+            # Hide slider 
+            self.char_input_label.hide()
+            self.char_slider.hide()
+            self.char_label.hide()
+
+
+    def disable_file_selection(self):
+        if self.message_input.text():
+            self.file_label.setText("No file selected")
+            self.file_path = None
+
+            if not self.file_disabled_notified: 
+                self.display_message("Manual message input detected. File selection disabled.")
+                self.file_disabled_notified = True  
+
+            self.file_button.setDisabled(True) #Disables 
+            self.file_button.setStyleSheet("background-color: #555; color: #999; border-radius: 5px;")
+
+            # **Hide the character slider**
+            self.char_input_label.hide()
+            self.char_slider.hide()
+            self.char_label.hide()  
+        else:  
+            self.file_button.setDisabled(False) #Enables
+            self.file_button.setStyleSheet("background-color: #4e4e4e; color: white; border-radius: 5px;")  # Restore 
+            self.file_disabled_notified = False  
+
+    def update_char_label(self, value):
+            """Update the character input label based on the dial value."""
+            self.char_label.setText(str(value))
+            
     def run_simulation(self):
         self.display_message("Simulation started")
+        try:
+            
+            selected_modes = self.selected_modulations
+            carrier_freq = self.carrier_freq_input.text()
+            bit_rate = self.bit_rate_input.text()
+            if not selected_modes:
+                raise ValueError("No modulations selected. Please select at least one modulation.")
+            if not bit_rate:
+                raise ValueError("Bit rate not specified. Please enter a valid bit rate.")
+            if not carrier_freq:
+                raise ValueError("Carrier frequency not specified. Please enter a valid carrier frequency.")
+            
+            try:
+                carrier_freq = int(carrier_freq)
+                bit_rate = int(bit_rate)
+            except ValueError:
+                raise ValueError("Invalid bit rate or carrier frequency. Please enter valid integers.")
+            
+            # Initialize the MODEMS
+            modulators = {mod: Mod(mod, bit_rate, carrier_freq) for mod in selected_modes}
+            demodulators = {mod: Demod(mod, bit_rate, carrier_freq) for mod in selected_modes}
+            
+            # Initialize dictionaries for modulated signals and BER
+            modulated_signals = {mod: (None, None) for mod in selected_modes}
+            ber_dict = {mod: [] for mod in selected_modes}
+            
+            fig, ax = plt.subplots(1, 1)
+            
+            snr_up,snr_down = self.snr_upper_input.text(), self.snr_lower_input.text()
+        
+            try:
+                snr_up, snr_down = int(snr_up), int(snr_down)
+            except ValueError:
+                raise ValueError("Invalid SNR values. Please enter valid integers.")
+            
+            if snr_up < snr_down:
+                raise ValueError("SNR upper limit must be greater than SNR lower limit")
+            
+            snr_test_range = arange(snr_down, snr_up + 1)
+            
+            bit_string = Mod.msgchar2bit_static(self.message_input.text())
+
+            
+            pass
+        except ValueError as e:
+            # Show verbose error information for ValueErrors
+            error_details = format_exc()  # Get the full traceback
+            self.display_message(f"ValueError: {str(e)}\nDetails:\n{error_details}")
+        except Exception as e:
+            # Show verbose error information for any other exceptions
+            error_details = format_exc()  # Get the full traceback
+            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
 
     def display_message(self, message):
         self.output_display.append(message)    

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLineEdit, QLabel, QTextEdit, QSlider, QCheckBox
+    QLineEdit, QLabel, QTextEdit, QSlider, QCheckBox, QFileDialog
 )
 
 from PyQt5.QtCore import Qt
@@ -88,15 +88,34 @@ class EyeDiagramDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Slider for Input Characters
-        char_input_layout = QVBoxLayout()
-        char_input_label = QLabel("Number of Input Characters:", font=font)
-        char_input_layout.addWidget(char_input_label, alignment=Qt.AlignLeft)
+        # Text File Select for Modulation
+        # File Selection Section
+        self.file_selection_layout = QHBoxLayout()
+        self.file_label = QLabel("No file selected", self)
+        self.file_path = None
+        self.file_label.setFont(font)
+        self.file_button = QPushButton("Select a .txt File", self)
+        self.file_button.setFont(font)
+        self.file_button.setFixedSize(250, 50)
+                
+        self.file_button.clicked.connect(self.select_file)
+
+        self.file_selection_layout.addWidget(self.file_label)
+        self.file_selection_layout.addSpacing(20)
+        self.file_selection_layout.addWidget(self.file_button)
+        self.file_selection_layout.addStretch()
+        self.main_layout.addLayout(self.file_selection_layout)
+        
+        # **Character Slider Bar (Initially Hidden)**
+        self.char_input_layout = QVBoxLayout()
+        self.char_input_label = QLabel("Number of Input Characters:", font=font)
+        self.char_input_layout.addWidget(self.char_input_label, alignment=Qt.AlignLeft)
 
         self.char_slider = QSlider(Qt.Horizontal, self)
-        self.char_slider.setRange(1, 100)  
+        self.char_slider.setRange(0, 1)  
         self.char_slider.setSingleStep(1)
-        self.char_slider.setValue(1)  
+        self.char_slider.setValue(0)
+        self.char_slider.setEnabled(False)  
         self.char_slider.setStyleSheet("""
             QSlider::groove:horizontal {
                 background: #3e3e3e;
@@ -117,13 +136,19 @@ class EyeDiagramDialog(QDialog):
         """)
         self.char_slider.valueChanged.connect(self.update_char_label)
 
-        self.char_label = QLabel("1000", self)
+        self.char_label = QLabel("0", self)
         self.char_label.setFont(font)
         self.char_label.setAlignment(Qt.AlignCenter)
 
-        char_input_layout.addWidget(self.char_slider)
-        char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
-        self.main_layout.addLayout(char_input_layout)
+        self.char_input_layout.addWidget(self.char_slider)
+        self.char_input_layout.addWidget(self.char_label, alignment=Qt.AlignCenter)
+
+        self.char_input_label.hide()
+        self.char_slider.hide()
+        self.char_label.hide()
+
+        self.main_layout.addLayout(self.char_input_layout)
+        self.setLayout(self.main_layout)
 
         # Constellation Plot Checkbox
         self.constellation_checkbox = QCheckBox("Enable Constellation Plot", self)
@@ -161,11 +186,86 @@ class EyeDiagramDialog(QDialog):
         button.setProperty("selected", "true")
         button.setStyle(button.style())
         self.output_display.append(f"{mode} selected")
+        
+    def select_file(self):
+        # File selection
+        file_dialog = QFileDialog(self)
+        file_path, _ = file_dialog.getOpenFileName(self, "Select a File", "", "Text Files (*.txt)")
+
+        if file_path:
+            max_length = 50
+            truncated_path = f"...{file_path[-max_length:]}" if len(file_path) > max_length else file_path
+
+            self.file_label.setText(truncated_path)
+            self.file_path = file_path
+            self.display_message("File Selection Successful")
+
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    self.max_chars = len(content.strip())  
+
+                    if self.max_chars > 0:
+                        # slider range to max char
+                        self.char_slider.setRange(1, self.max_chars)
+                        self.char_slider.setValue(1)  
+                        self.char_slider.setEnabled(True)
+
+                        # Unhide the slider
+                        self.char_input_label.show()
+                        self.char_slider.show()
+                        self.char_label.show()
+
+                        self.update_char_label(1) 
+                    else:
+                        self.display_message("The selected file is empty. Please choose a different file.")
+                        self.char_input_label.hide()
+                        self.char_slider.hide()
+                        self.char_label.hide()
+            except Exception as e:
+                self.display_message(f"Error reading the file: {str(e)}")
+                self.file_label.setText("No file selected")
+                self.file_path = None
+
+                # Hide slider
+                self.char_input_label.hide()
+                self.char_slider.hide()
+                self.char_label.hide()
+        else:
+            self.file_label.setText("No file selected")
+            self.file_path = None
+
+            # Hide slider 
+            self.char_input_label.hide()
+            self.char_slider.hide()
+            self.char_label.hide()
+
+
+    def disable_file_selection(self):
+        if self.message_input.text():
+            self.file_label.setText("No file selected")
+            self.file_path = None
+
+            if not self.file_disabled_notified: 
+                self.display_message("Manual message input detected. File selection disabled.")
+                self.file_disabled_notified = True  
+
+            self.file_button.setDisabled(True) #Disables 
+            self.file_button.setStyleSheet("background-color: #555; color: #999; border-radius: 5px;")
+
+            # **Hide the character slider**
+            self.char_input_label.hide()
+            self.char_slider.hide()
+            self.char_label.hide()  
+        else:  
+            self.file_button.setDisabled(False) #Enables
+            self.file_button.setStyleSheet("background-color: #4e4e4e; color: white; border-radius: 5px;")  # Restore 
+            self.file_disabled_notified = False  
 
     def update_char_label(self, value):
-        char_count = value * 1000  # Map range 1-100 to 1000-100000
-        self.char_label.setText(f"{char_count:,}")
-
+            """Update the character input label based on the dial value."""
+            self.char_label.setText(str(value))
+            
     def display_message(self, message):
         self.output_display.append(message)
 
