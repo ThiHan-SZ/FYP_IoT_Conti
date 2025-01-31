@@ -11,8 +11,10 @@ from Simulator.SimulationClassCompact.ModulationClass import Modulator as Mod
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator as Demod
 from Simulator.SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
 
+from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
+
 import matplotlib.pyplot as plt
-from numpy import arange
+from numpy import arange, array, sum, abs 
 
 class SNRBERDialog(QDialog):
     def __init__(self):
@@ -72,19 +74,7 @@ class SNRBERDialog(QDialog):
 
         # Bit Rate and Carrier Frequency Inputs
         input_layout = QVBoxLayout()
-
-        # Bit Rate Input
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        input_layout.addLayout(bitrate_layout)
-
+        
         # Carrier Frequency Input
         carrier_freq_layout = QHBoxLayout()
         carrier_freq_label = QLabel("Carrier Frequency:", font=font)
@@ -98,6 +88,18 @@ class SNRBERDialog(QDialog):
         input_layout.addLayout(carrier_freq_layout)
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
+
+        # Bit Rate Input
+        bitrate_layout = QHBoxLayout()
+        bitrate_label = QLabel("Bit Rate:", font=font)
+        self.bit_rate_input = QLineEdit(self)
+        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
+        self.bit_rate_input.setFont(font)
+        self.bit_rate_input.setFixedWidth(400)
+        bitrate_layout.addWidget(bitrate_label)
+        bitrate_layout.addWidget(self.bit_rate_input)
+        bitrate_layout.addStretch()
+        input_layout.addLayout(bitrate_layout)
 
         # Text File Select for Modulation
         # File Selection Section
@@ -190,7 +192,20 @@ class SNRBERDialog(QDialog):
         snr_upper_layout.addWidget(self.snr_upper_input)
         snr_upper_layout.addStretch()
         snr_input_layout.addLayout(snr_upper_layout)
-
+        
+        # Noise Seed
+        noise_generator_seed_layout = QVBoxLayout()
+        noise_generator_seed_label = QLabel("Noise generator seed:", font=font)
+        self.noise_generator_seed_input = QLineEdit(self)
+        self.noise_generator_seed_input.setPlaceholderText("Enter Seed, leave blank for default seed")
+        self.noise_generator_seed_input.setFont(font)
+        self.noise_generator_seed_input.setFixedWidth(400)
+        noise_generator_seed_layout.addWidget(noise_generator_seed_label)
+        noise_generator_seed_layout.addWidget(self.noise_generator_seed_input)
+        noise_generator_seed_layout.addStretch()
+        snr_input_layout.addLayout(noise_generator_seed_layout)
+        
+        
         self.main_layout.addLayout(snr_input_layout)
 
         # Add Run Simulation Button
@@ -330,7 +345,7 @@ class SNRBERDialog(QDialog):
             
             # Initialize the MODEMS
             modulators = {mod: Mod(mod, bit_rate, carrier_freq) for mod in selected_modes}
-            demodulators = {mod: Demod(mod, bit_rate, carrier_freq) for mod in selected_modes}
+            demodulators = {mod: Demod(mod, bit_rate, modulators[mod].sampling_rate) for mod in selected_modes}
             
             # Initialize dictionaries for modulated signals and BER
             modulated_signals = {mod: (None, None) for mod in selected_modes}
@@ -339,6 +354,17 @@ class SNRBERDialog(QDialog):
             fig, ax = plt.subplots(1, 1)
             
             snr_up,snr_down = self.snr_upper_input.text(), self.snr_lower_input.text()
+            
+            if not self.file_path:
+                raise ValueError("No file selected. Please select a file for message input.")
+            
+            if not self.char_label.text() or not self.char_label.text().isdigit():
+                raise ValueError("Invalid character count. Please enter a valid integer.")
+            
+            slicer = int(self.char_label.text())
+            
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                message = file.read()[:slicer]
         
             try:
                 snr_up, snr_down = int(snr_up), int(snr_down)
@@ -349,10 +375,66 @@ class SNRBERDialog(QDialog):
                 raise ValueError("SNR upper limit must be greater than SNR lower limit")
             
             snr_test_range = arange(snr_down, snr_up + 1)
+                
+            seed = 1
             
-            bit_string = Mod.msgchar2bit_static(self.message_input.text())
+            if self.noise_generator_seed_input.text():
+                try:
+                    seed = int(self.noise_generator_seed_input.text())
+                except ValueError:
+                    raise ValueError("Invalid seed value. Please enter a valid integer.")
+            
+            ChannelDict = {snr: AWGN(snr, seed=seed) for snr in snr_test_range}
+            
+            comparison_string = array([int(bit) for bit in Mod.msgchar2bit_static(message)])
+            
+            total_iter = len(snr_test_range) * len(selected_modes)
+            current_iter = 0
+            
+            for modulation_type in selected_modes:
+                modulator = modulators[modulation_type]
+                demodulator = demodulators[modulation_type]
+                
+                bit_string = modulator.msgchar2bit(message)
+                time_axis, modulated_signal = modulator.modulate(bit_string)
+                modulated_signals[modulation_type] = (time_axis, modulated_signal)
+                
+                for snr in snr_test_range:
+                    current_iter += 1
+                    self.display_message(f"Processing {modulation_type} at SNR {snr} dB ({current_iter/total_iter*100:.2f})%")
+                    channel = ChannelDict[snr]
+                    noisy_signal = channel.add_noise(modulated_signal)
+                    demodulated_signal = demodulator.demodulate(noisy_signal)
+                    demodulated_bits = demodulator.demapping(demodulated_signal)[1][:len(comparison_string)]
+                    error_bits = sum(abs(comparison_string - demodulated_bits))
+                    ber_dict[modulation_type].append(error_bits / len(bit_string))
+                    
+            # Set y-axis to symlog scale
+            ax.set_yscale('symlog', linthresh=1e-5)
+            # Custom ticks to include 0 and log-scale values
+            ticks = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
+            ax.set_yticks(ticks)
 
+            ax.grid(which="both", linestyle='--', linewidth=0.5)
             
+            from matplotlib.ticker import MultipleLocator; ax.xaxis.set_major_locator(MultipleLocator(1))
+
+            colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'black']
+            markers = ['o', 's', '^', 'v', '<', '>', 'd']
+
+            for modulation_type, color, marker in zip(selected_modes, colors, markers):
+                ax.plot(snr_test_range, ber_dict[modulation_type], label=modulation_type, color=color, marker=marker)
+
+            ax.set_xlabel('SNR (dB)')
+            ax.set_ylabel('BER')
+            ax.set_title('BER vs SNR')
+            ax.legend()
+            
+            ScrollableGraphDialog.add_figure(self, fig)
+            
+            self.display_message("BER vs SNR Plot completed successfully!")
+            ScrollableGraphDialog.clear_figures(self)
+            fig.clear()
             pass
         except ValueError as e:
             # Show verbose error information for ValueErrors
