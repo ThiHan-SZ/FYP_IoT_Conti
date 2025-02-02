@@ -118,7 +118,7 @@ class DemodulationDialog(QDialog):
         self.conditional_inputs["Fading"] = self.fading_selection
         
 
-        self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor")
+        self.rician_input_layout = self.create_input_layout("Rician K Factor:", "Enter K Factor (dB)")
         self.rician_input_layout.hide()  # Hidden until "Rician" is selected
         fading_layout.addWidget(self.rician_input_layout)
         self.conditional_inputs["K value"] = self.rician_input_layout
@@ -130,7 +130,7 @@ class DemodulationDialog(QDialog):
         self.conditional_inputs["Freq Offset"] = self.create_input_layout("Freq Offset:", "Enter freq offset (Hz)")
 
         # Delay Input
-        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples fraction)")
+        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples fraction) btw 0-1")
 
         # Add all conditional inputs to the scroll layout
         for widget in self.conditional_inputs.values():
