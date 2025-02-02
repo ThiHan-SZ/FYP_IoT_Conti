@@ -403,12 +403,14 @@ class EyeDiagramDialog(QDialog):
     #toggling state
     def toggle_channel_button(self, channel_name):
         button = self.channel_buttons[channel_name]
+
         if button.property("selected") == "true":
             button.setProperty("selected", "false")
             button.setStyle(button.style())
             self.selected_channels.discard(channel_name)
             self.display_message(f"{channel_name} deselected")
             self.conditional_inputs[channel_name].hide()
+
         else:
             button.setProperty("selected", "true")
             button.setStyle(button.style())
@@ -416,10 +418,16 @@ class EyeDiagramDialog(QDialog):
             self.display_message(f"{channel_name} selected")
             self.conditional_inputs[channel_name].show()
 
+        if channel_name == "Fading":
+            self.handle_fading_selection(self.fading_selection.currentText())
+            
     #K factor input
     def handle_fading_selection(self, selection):
+        if "Fading" not in self.selected_channels:
+            self.rician_input_layout.hide()  # Ensure it stays hidden if "Fading" is not selected
+            return
+        
         if selection == "Rician":
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
-        #self.conditional_inputs["Fading"] = selection
