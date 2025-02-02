@@ -434,6 +434,7 @@ class SNRBERDialog(QDialog):
             GraphViewer.add_figure(fig)
             
             self.display_message("BER vs SNR Plot completed successfully!")
+            GraphViewer.exec_()
             GraphViewer.clear_figures()
             fig.clear()
             pass
