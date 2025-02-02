@@ -73,7 +73,7 @@ class SNRBERTest:
                 noisy_signal = channel.add_noise(modulated_signal)
                 demodulated_signal = demodulator.demodulate(noisy_signal)
                 demodulated_bits = demodulator.demapping(demodulated_signal)[1][:-2]
-                error_bits = sum(abs(comparison_string - demodulated_bits))
+                error_bits = sum(abs(comparison_string - demodulated_bits[:len(comparison_string)]))
                 self.ber_dict[mode].append(error_bits / len(bit_string))
                 
     def plotSNRBER(self,message):
