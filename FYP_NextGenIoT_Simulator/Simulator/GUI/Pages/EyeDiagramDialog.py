@@ -62,18 +62,6 @@ class EyeDiagramDialog(QDialog):
         # Bit Rate and Carrier Frequency Inputs
         input_layout = QVBoxLayout()
 
-        # Bit Rate Input
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        input_layout.addLayout(bitrate_layout)
-
         # Carrier Frequency Input
         carrier_freq_layout = QHBoxLayout()
         carrier_freq_label = QLabel("Carrier Frequency:", font=font)
@@ -87,6 +75,20 @@ class EyeDiagramDialog(QDialog):
         input_layout.addLayout(carrier_freq_layout)
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
+
+        # Bit Rate Input
+        bitrate_layout = QHBoxLayout()
+        bitrate_label = QLabel("Bit Rate:", font=font)
+        self.bit_rate_input = QLineEdit(self)
+        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
+        self.bit_rate_input.setFont(font)
+        self.bit_rate_input.setFixedWidth(400)
+        bitrate_layout.addWidget(bitrate_label)
+        bitrate_layout.addWidget(self.bit_rate_input)
+        bitrate_layout.addStretch()
+        input_layout.addLayout(bitrate_layout)
+
+        
 
         # Text File Select for Modulation
         # File Selection Section
