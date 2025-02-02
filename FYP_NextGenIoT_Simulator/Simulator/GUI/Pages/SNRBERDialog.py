@@ -70,23 +70,6 @@ class SNRBERDialog(QDialog):
         self.main_layout.addLayout(modulation_type_layout)
         self.main_layout.addSpacing(50)
 
-        # Buttons for Channel Modes
-        channel_mode_buttons_layout = QHBoxLayout()
-        self.channel_buttons = {
-            "AWGN": QPushButton("AWGN", self),
-            "Fading": QPushButton("Fading", self),
-            "Freq Drift": QPushButton("Freq Drift", self),
-            "Freq Offset": QPushButton("Freq Offset", self),
-            "Delay": QPushButton("Delay", self)
-        }
-
-        for name, button in self.channel_buttons.items():
-            button.setFont(font)
-            button.setFixedSize(150, 50)
-            button.setProperty("selected", "false")
-            button.clicked.connect(lambda checked, n=name: self.toggle_channel_button(n))
-            channel_mode_buttons_layout.addWidget(button)
-
         # Channel Mode Section
         channel_mode_layout = QVBoxLayout()
         channel_mode_label = QLabel("Channel Mode:", font=font)
