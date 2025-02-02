@@ -303,12 +303,14 @@ class DemodulationDialog(QDialog):
     #toggling state
     def toggle_channel_button(self, channel_name):
         button = self.channel_buttons[channel_name]
+
         if button.property("selected") == "true":
             button.setProperty("selected", "false")
             button.setStyle(button.style())
             self.selected_channels.discard(channel_name)
             self.display_message(f"{channel_name} deselected")
             self.conditional_inputs[channel_name].hide()
+
         else:
             button.setProperty("selected", "true")
             button.setStyle(button.style())
@@ -316,13 +318,19 @@ class DemodulationDialog(QDialog):
             self.display_message(f"{channel_name} selected")
             self.conditional_inputs[channel_name].show()
 
+        if channel_name == "Fading":
+            self.handle_fading_selection(self.fading_selection.currentText())
+            
     #K factor input
     def handle_fading_selection(self, selection):
+        if "Fading" not in self.selected_channels:
+            self.rician_input_layout.hide()  # Ensure it stays hidden if "Fading" is not selected
+            return
+        
         if selection == "Rician":
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
-        #self.conditional_inputs["Fading"] = selection
     
     def handle_plot_iq_checkbox(self, state):
         """Handle state change for Plot IQ checkbox."""
@@ -386,37 +394,7 @@ class DemodulationDialog(QDialog):
 
             # Apply channels if any
             if self.selected_channels:
-                for channel, value in channel_params.items():
-                    match channel:
-                        case "AWGN":
-                            AWGNChannel = Channel.SimpleGWNChannel_dB(SNR=value)
-                            signal = AWGNChannel.add_noise(signal)
-                            continue
-                        case "Fading":
-                            FlatFadingChannel = Channel.SimpleFlatFadingChannel(type=str(value).lower())
-                            if value == "Rician":
-                                assert "K value" in channel_params
-                                FlatFadingChannel.rician_k = float(channel_params["K value"])
-                            signal = FlatFadingChannel.add_fading(signal)
-                            continue
-                        case "Freq Drift":
-                            FreqDriftChannel = Channel.SimpleFrequencyDriftChannel(frequency_drift_rate=value)
-                            signal = FreqDriftChannel.add_drift(signal)
-                            continue
-                        case "Freq Offset":
-                            FreqOffsetChannel = Channel.SimpleFrequencyOffsetChannel(frequency_offset=value)
-                            signal = FreqOffsetChannel.add_offset(signal, sampling_rate)
-                            continue
-                        case "Delay":
-                            DelayChannel = Channel.SimpleDelayChannel(delay=value)
-                            signal = DelayChannel.add_delay(signal)
-                            continue
-                        case "K value":
-                            # Case will only exist if Rician is selected but K is handled above
-                            continue
-                        case _:
-                            raise ValueError(f"Invalid channel: {channel}")
-
+               signal = Channel.ApplyChannels(self.selected_channels, channel_params, signal, sampling_rate)
             # Demodulate the signal
             demodulated_signal = demodulator.demodulate(signal)
             
