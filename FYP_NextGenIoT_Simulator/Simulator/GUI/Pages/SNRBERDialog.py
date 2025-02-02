@@ -430,10 +430,11 @@ class SNRBERDialog(QDialog):
             ax.set_title('BER vs SNR')
             ax.legend()
             
-            ScrollableGraphDialog.add_figure(self, fig)
+            GraphViewer = ScrollableGraphDialog(self)
+            GraphViewer.add_figure(self, fig)
             
             self.display_message("BER vs SNR Plot completed successfully!")
-            ScrollableGraphDialog.clear_figures(self)
+            GraphViewer.clear_figures(self)
             fig.clear()
             pass
         except ValueError as e:
