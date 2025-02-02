@@ -7,9 +7,7 @@ from PyQt5.QtGui import QFont
 from traceback import format_exc
 
 import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
-from Simulator.SimulationClassCompact.ModulationClass import Modulator as Mod
-from Simulator.SimulationClassCompact.DemodulationClass import Demodulator as Demod
-from Simulator.SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
+from Simulator.SimulationClassCompact.SNRBERClass import SNRBERTest
 
 from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
 
@@ -326,7 +324,6 @@ class SNRBERDialog(QDialog):
     def run_simulation(self):
         self.display_message("Simulation started")
         try:
-            
             selected_modes = self.selected_modulations
             carrier_freq = self.carrier_freq_input.text()
             bit_rate = self.bit_rate_input.text()
@@ -336,24 +333,21 @@ class SNRBERDialog(QDialog):
                 raise ValueError("Bit rate not specified. Please enter a valid bit rate.")
             if not carrier_freq:
                 raise ValueError("Carrier frequency not specified. Please enter a valid carrier frequency.")
-            
             try:
                 carrier_freq = int(carrier_freq)
                 bit_rate = int(bit_rate)
             except ValueError:
                 raise ValueError("Invalid bit rate or carrier frequency. Please enter valid integers.")
             
-            # Initialize the MODEMS
-            modulators = {mod: Mod(mod, bit_rate, carrier_freq) for mod in selected_modes}
-            demodulators = {mod: Demod(mod, bit_rate, modulators[mod].sampling_rate) for mod in selected_modes}
-            
-            # Initialize dictionaries for modulated signals and BER
-            modulated_signals = {mod: (None, None) for mod in selected_modes}
-            ber_dict = {mod: [] for mod in selected_modes}
-            
-            fig, ax = plt.subplots(1, 1)
-            
             snr_up,snr_down = self.snr_upper_input.text(), self.snr_lower_input.text()
+            
+            try:
+                snr_up, snr_down = int(snr_up), int(snr_down)
+            except ValueError:
+                raise ValueError("Invalid SNR values. Please enter valid integers.")
+            
+            if snr_up < snr_down:
+                raise ValueError("SNR upper limit must be greater than SNR lower limit")
             
             if not self.file_path:
                 raise ValueError("No file selected. Please select a file for message input.")
@@ -365,17 +359,7 @@ class SNRBERDialog(QDialog):
             
             with open(self.file_path, 'r', encoding='utf-8') as file:
                 message = file.read()[:slicer]
-        
-            try:
-                snr_up, snr_down = int(snr_up), int(snr_down)
-            except ValueError:
-                raise ValueError("Invalid SNR values. Please enter valid integers.")
-            
-            if snr_up < snr_down:
-                raise ValueError("SNR upper limit must be greater than SNR lower limit")
-            
-            snr_test_range = arange(snr_down, snr_up + 1)
-                
+    
             seed = 1
             
             if self.noise_generator_seed_input.text():
@@ -384,59 +368,15 @@ class SNRBERDialog(QDialog):
                 except ValueError:
                     raise ValueError("Invalid seed value. Please enter a valid integer.")
             
-            ChannelDict = {snr: AWGN(snr, seed=seed) for snr in snr_test_range}
+            SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed)
             
-            comparison_string = array([int(bit) for bit in Mod.msgchar2bit_static(message)])
-            
-            total_iter = len(snr_test_range) * len(selected_modes)
-            current_iter = 0
-            
-            for modulation_type in selected_modes:
-                modulator = modulators[modulation_type]
-                demodulator = demodulators[modulation_type]
-                
-                bit_string = modulator.msgchar2bit(message)
-                time_axis, modulated_signal = modulator.modulate(bit_string)
-                modulated_signals[modulation_type] = (time_axis, modulated_signal)
-                
-                for snr in snr_test_range:
-                    current_iter += 1
-                    self.display_message(f"Processing {modulation_type} at SNR {snr} dB ({current_iter/total_iter*100:.2f})%")
-                    channel = ChannelDict[snr]
-                    noisy_signal = channel.add_noise(modulated_signal)
-                    demodulated_signal = demodulator.demodulate(noisy_signal)
-                    demodulated_bits = demodulator.demapping(demodulated_signal)[1][:len(comparison_string)]
-                    error_bits = sum(abs(comparison_string - demodulated_bits))
-                    ber_dict[modulation_type].append(error_bits / len(bit_string))
-                    
-            # Set y-axis to symlog scale
-            ax.set_yscale('symlog', linthresh=1e-5)
-            # Custom ticks to include 0 and log-scale values
-            ticks = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
-            ax.set_yticks(ticks)
-
-            ax.grid(which="both", linestyle='--', linewidth=0.5)
-            
-            from matplotlib.ticker import MultipleLocator; ax.xaxis.set_major_locator(MultipleLocator(1))
-
-            colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'black']
-            markers = ['o', 's', '^', 'v', '<', '>', 'd']
-
-            for modulation_type, color, marker in zip(selected_modes, colors, markers):
-                ax.plot(snr_test_range, ber_dict[modulation_type], label=modulation_type, color=color, marker=marker)
-
-            ax.set_xlabel('SNR (dB)')
-            ax.set_ylabel('BER')
-            ax.set_title('BER vs SNR')
-            ax.legend()
-            
+            figure = SNRBER_Test.plotSNRBER(message)
             GraphViewer = ScrollableGraphDialog(self)
-            GraphViewer.add_figure(fig)
-            
-            self.display_message("BER vs SNR Plot completed successfully!")
+            GraphViewer.add_figure(figure)
             GraphViewer.exec_()
+            
             GraphViewer.clear_figures()
-            fig.clear()
+            SNRBER_Test = None # Clear the reference to the SNRBERTest object
             pass
         except ValueError as e:
             # Show verbose error information for ValueErrors
