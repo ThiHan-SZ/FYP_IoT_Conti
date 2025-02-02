@@ -170,3 +170,61 @@ class SimpleFrequencyOffsetChannel:
         # Apply frequency offset to the signal
         signal = signal * exp(1j * 2 * pi * self.frequency_offset * time)
         return signal
+    
+def ApplyChannels(selected_channels, channel_params, signal, sampling_rate):
+    """
+    Applies a sequence of channels to the input signal based on the selected channels and parameters.
+
+    Parameters:
+    - selected_channels (list of str): List of channels to be applied to the signal.
+    - channel_params (dict): Dictionary of channel parameters. The keys are the channel names and the values are the corresponding parameters.
+    - signal (np.array): The input signal to which the channels will be applied.
+    - sampling_rate (int): Sampling rate of the signal.
+
+    Returns:
+    - np.array: The signal with the applied channels.
+
+    Supported channels are:
+    - AWGN
+    - Fading (Rayleigh or Rician)
+        - Rician requires K input
+    - Freq Drift
+    - Freq Offset
+    - Delay
+
+    If a channel is not supported, a ValueError is raised.
+    """
+    if selected_channels:
+        for channel, value in channel_params.items():
+            match channel:
+                case "AWGN":
+                    AWGNChannel = SimpleGWNChannel_dB(SNR=value)
+                    signal = AWGNChannel.add_noise(signal)
+                    continue
+                case "Fading":
+                    FlatFadingChannel = SimpleFlatFadingChannel(type=str(value).lower())
+                    if value == "Rician":
+                        assert "K value" in channel_params
+                        FlatFadingChannel.rician_k = float(channel_params["K value"])
+                    signal = FlatFadingChannel.add_fading(signal)
+                    continue
+                case "Freq Drift":
+                    FreqDriftChannel = SimpleFrequencyDriftChannel(frequency_drift_rate=value)
+                    signal = FreqDriftChannel.add_drift(signal)
+                    continue
+                case "Freq Offset":
+                    FreqOffsetChannel = SimpleFrequencyOffsetChannel(frequency_offset=value)
+                    signal = FreqOffsetChannel.add_offset(signal, sampling_rate)
+                    continue
+                case "Delay":
+                    DelayChannel = SimpleDelayChannel(delay=value)
+                    signal = DelayChannel.add_delay(signal)
+                    continue
+                case "K value":
+                    # Case will only exist if Rician is selected but K is handled above
+                    continue
+                case _:
+                    raise ValueError(f"Invalid channel: {channel}")
+    
+        return signal
+    
