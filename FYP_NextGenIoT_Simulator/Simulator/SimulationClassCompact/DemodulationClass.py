@@ -304,6 +304,8 @@ class Demodulator:
 
         Args:
             demod_signal (np.array): The demodulated signal.
+            
+        ### To extract figure, use self.fig 
         """
         if self.plot_IQ and not self.plot_EyeDiagram:
             self.received_IQ(demod_signal)
