@@ -64,6 +64,8 @@ class SNRBERTest:
             modulator = self.modulators[mode]
             demodulator = self.demodulators[mode]
             
+            
+            
             bit_string = modulator.msgchar2bit(message)
             time_axis, modulated_signal = modulator.modulate(bit_string)
             self.modulated_signals[mode] = (time_axis, modulated_signal)
@@ -72,7 +74,7 @@ class SNRBERTest:
                 channel = self.channels[snr]
                 noisy_signal = channel.add_noise(modulated_signal)
                 demodulated_signal = demodulator.demodulate(noisy_signal)
-                demodulated_bits = demodulator.demapping(demodulated_signal)[1][:-2]
+                demodulated_bits = demodulator.demapping(demodulated_signal)[1]
                 error_bits = sum(abs(comparison_string - demodulated_bits[:len(comparison_string)]))
                 self.ber_dict[mode].append(error_bits / len(bit_string))
                 
