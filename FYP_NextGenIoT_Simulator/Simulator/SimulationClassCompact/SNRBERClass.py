@@ -57,6 +57,9 @@ class SNRBERTest:
         
         self.fig, self.ax = plt.subplots(1, 1)
         
+        self.current_iter = 0
+        self.max_iters = len(self.snr_test_range) * len(selected_modes)
+
     def __simulateSNRBER(self,message):
         comparison_string = array([int(bit) for bit in Modulator.msgchar2bit_static(message)])
         
@@ -64,19 +67,19 @@ class SNRBERTest:
             modulator = self.modulators[mode]
             demodulator = self.demodulators[mode]
             
-            
-            
             bit_string = modulator.msgchar2bit(message)
             time_axis, modulated_signal = modulator.modulate(bit_string)
             self.modulated_signals[mode] = (time_axis, modulated_signal)
             
             for snr in self.snr_test_range:
+                self.current_iter += 1
                 channel = self.channels[snr]
                 noisy_signal = channel.add_noise(modulated_signal)
                 demodulated_signal = demodulator.demodulate(noisy_signal)
                 demodulated_bits = demodulator.demapping(demodulated_signal)[1]
                 error_bits = sum(abs(comparison_string - demodulated_bits[:len(comparison_string)]))
                 self.ber_dict[mode].append(error_bits / len(bit_string))
+                
                 
     def plotSNRBER(self,message):
         """
