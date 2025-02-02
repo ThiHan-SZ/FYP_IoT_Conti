@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
-from SimulationClassCompact.ModulationClass import Modulator
-from SimulationClassCompact.DemodulationClass import Demodulator
-from SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
+from Simulator.SimulationClassCompact.ModulationClass import Modulator
+from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
+from Simulator.SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
 
 from numpy import array,arange
 
