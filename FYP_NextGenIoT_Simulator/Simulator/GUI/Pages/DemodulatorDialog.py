@@ -416,7 +416,10 @@ class DemodulationDialog(QDialog):
             self.display_message("Demodulation complete!")
 
         except ValueError as e:
-            self.display_message(f"ValueError: {str(e)}")
+            # Show verbose error information for ValueErrors
+            error_details = format_exc()  # Get the full traceback
+            self.display_message(f"ValueError: {str(e)}\nDetails:\n{error_details}")
         except Exception as e:
-            error_details = format_exc()
+            # Show verbose error information for any other exceptions
+            error_details = format_exc()  # Get the full traceback
             self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")  
