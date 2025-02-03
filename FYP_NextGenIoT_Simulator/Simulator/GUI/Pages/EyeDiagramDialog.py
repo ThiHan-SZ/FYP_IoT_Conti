@@ -5,6 +5,14 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
+from traceback import format_exc
+
+import sys; import os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+from Simulator.SimulationClassCompact.ModulationClass import Modulator
+from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
+import Simulator.SimulationClassCompact.ChannelClass as Channel
+
+from Pages.GraphDialog import ScrollableGraphDialog
 
 class EyeDiagramDialog(QDialog):
     def __init__(self):
@@ -254,13 +262,16 @@ class EyeDiagramDialog(QDialog):
         # Constellation Plot Checkbox
         self.constellation_checkbox = QCheckBox("Enable Constellation Plot", self)
         self.constellation_checkbox.setFont(font)
+        self.constellation_checkbox.stateChanged.connect(self.handle_constellation_checkbox)  # Connect to handler
+        self.plot_constellation = False
         self.main_layout.addWidget(self.constellation_checkbox)
 
         # Run Button
-        self.run_button = QPushButton("Run Eye Diagram Simulation", self)
-        self.run_button.setFont(font)
-        self.run_button.setFixedSize(500, 50)
-        self.main_layout.addWidget(self.run_button, alignment=Qt.AlignCenter)
+        self.run_simulation_button = QPushButton("Run Eye Diagram Simulation", self)
+        self.run_simulation_button.setFont(font)
+        self.run_simulation_button.setFixedSize(500, 50)
+        self.run_simulation_button.clicked.connect(self.run_simulation)
+        self.main_layout.addWidget(self.run_simulation_button, alignment=Qt.AlignCenter)
 
         # Output Display (Terminal-like)
         self.output_display = QTextEdit(self)
@@ -275,6 +286,8 @@ class EyeDiagramDialog(QDialog):
             }
         """)
         self.main_layout.addWidget(self.output_display)
+
+        self.selected_mode = None  # Store the selected modulation mode
 
     def select_modulation_button(self, mode):
         # Reset all buttons
@@ -431,3 +444,83 @@ class EyeDiagramDialog(QDialog):
             self.rician_input_layout.show()
         else:
             self.rician_input_layout.hide()
+    def handle_constellation_checkbox(self, state):
+            """Handle state change for Plot IQ checkbox."""
+            self.plot_constellation = state == Qt.Checked
+    def run_simulation(self):
+        try:
+            GraphViewer = ScrollableGraphDialog(self)
+            if not self.selected_mode:
+                self.display_message("Error: Please select a Modem mode.")
+                return
+            
+            if not self.carrier_freq_input.text():
+                self.display_message("Error: Please enter a carrier frequency.")
+                return
+
+            if not self.bit_rate_input.text():
+                self.display_message("Error: Please enter a bit rate.")
+                return
+
+            if not self.file_path:
+                self.display_message("Error: Please select a file to modulate to perfom Eye Diagram analysis.")
+                return
+            
+            if not self.char_label.text() or not self.char_label.text().isdigit():
+                raise ValueError("Invalid character count. Please enter a valid integer.")
+            
+            slicer = int(self.char_label.text())
+
+            with open(self.file_path, 'r', encoding='utf-8') as file:
+                message = file.read()[:slicer]
+            
+            # Collect dynamic parameters (e.g., AWGN SNR, Freq Drift)
+            channel_params = {}
+            for channel, widget in self.conditional_inputs.items():
+                if widget.isVisible():
+                    text = None
+                    input_field = widget.findChild(QLineEdit)
+                    if not input_field: # Special case for combobox
+                        text =  widget.currentText().strip()
+                    if (input_field and input_field.text().strip()):
+                        channel_params[channel] = float(input_field.text().strip())
+                    elif text and text != "Select Fading Type":
+                        channel_params[channel] = text
+                    else:
+                        self.display_message(f"Error: Please enter a valid value for {channel}.")
+                        return
+
+            carrier_freq = int(self.carrier_freq_input.text())
+            bit_rate = int(self.bit_rate_input.text())
+            mode = self.selected_mode #selected demod
+
+            modulator = Modulator(mode, bit_rate, carrier_freq)
+            demodulator = Demodulator(mode, bit_rate, modulator.sampling_rate)
+            demodulator.plot_EyeDiagram = True #Set to true to plot eye diagram
+            demodulator.plot_constellation = self.plot_constellation 
+            bitstr = modulator.msgchar2bit(message)
+
+            t_axis, signal = modulator.modulate(bitstr)
+
+            # Apply selected channels
+            if self.selected_channels:
+               signal = Channel.ApplyChannels(self.selected_channels, channel_params, signal, modulator.sampling_rate)
+
+            # Demodulate the signal
+            demodulated_signal = demodulator.demodulate(signal)
+
+            demodulator.ax = demodulator.plot_setup(demodulator.fig)
+            demodulator.auto_plot(demodulated_signal)
+            GraphViewer.add_figure(demodulator.fig)
+            GraphViewer.exec_()
+            GraphViewer.clear_figures()
+            demodulator.fig.clear()
+
+        except ValueError as e:
+            # Show verbose error information for ValueErrors
+            error_details = format_exc()  # Get the full traceback
+            self.display_message(f"ValueError: {str(e)}\nDetails:\n{error_details}")
+        except Exception as e:
+            # Show verbose error information for any other exceptions
+            error_details = format_exc()  # Get the full traceback
+            self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")
