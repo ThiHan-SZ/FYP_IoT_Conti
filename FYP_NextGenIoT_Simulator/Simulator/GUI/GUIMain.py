@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
 
         # Dark theme styling
         self.setStyleSheet("""
-            QMainWindow { background-color: #2e2e2e; color: #ffffff; }
+            QMainWindow { background-color: #1e1e1e; color: #ffffff; }
             QLabel { color: #ffffff; font-weight: bold; font-size: 30px; }
             QPushButton { 
                 background-color: #4e4e4e; 
@@ -52,12 +52,12 @@ class MainWindow(QMainWindow):
         main_layout.addSpacing(50)
         sdr_label = QLabel("SDR MODE")
         sdr_label.setFont(header_font)
-        sdr_label.setAlignment(Qt.AlignCenter)
+        sdr_label.setAlignment(Qt.AlignCenter) 
         main_layout.addWidget(sdr_label)
 
         # Modulator and Demodulator Buttons
         sdr_layout = QHBoxLayout()
-        self.mod_button = QPushButton("  Modulator", self)
+        self.mod_button = QPushButton("Modulator", self)
         self.mod_button.setFont(button_font)
         self.mod_button.setIcon(QIcon(r"GUIAssets/mod_icon.png"))
         self.mod_button.setIconSize(QSize(250, 250))
@@ -65,14 +65,15 @@ class MainWindow(QMainWindow):
         self.mod_button.setStyleSheet("""
             QPushButton {
                 text-align: center; 
-                padding-top: 120px; 
+                padding-top: 75px; 
                 font-size: 36px; /* Increased text size */
                 font-weight: bold;
+                color: #ffa500;
             }
         """)
         self.mod_button.clicked.connect(self.open_modulation_dialog)
 
-        self.demod_button = QPushButton("  Demodulator", self)
+        self.demod_button = QPushButton("Demodulator", self)
         self.demod_button.setFont(button_font)
         self.demod_button.setIcon(QIcon(r"GUIAssets/demod_icon.png"))
         self.demod_button.setIconSize(QSize(250, 250))
@@ -80,9 +81,10 @@ class MainWindow(QMainWindow):
         self.demod_button.setStyleSheet("""
             QPushButton {
                 text-align: center; 
-                padding-top: 120px; 
+                padding-top: 75px; 
                 font-size: 36px; /* Increased text size */
                 font-weight: bold;
+                color: #ffa500;
             }
         """)
         self.demod_button.clicked.connect(self.open_demodulation_dialog)
@@ -101,7 +103,7 @@ class MainWindow(QMainWindow):
 
         # SNR BER and Eye Diagram Buttons
         perf_layout = QHBoxLayout()
-        self.snrber_button = QPushButton("  SNR BER", self)
+        self.snrber_button = QPushButton("SNR BER", self)
         self.snrber_button.setFont(button_font)
         self.snrber_button.setIcon(QIcon(r"GUIAssets/snr_icon.png"))
         self.snrber_button.setIconSize(QSize(250, 250))
@@ -109,9 +111,10 @@ class MainWindow(QMainWindow):
         self.snrber_button.setStyleSheet("""
             QPushButton {
                 text-align: center; 
-                padding-top: 120px; 
+                padding-top: 75px; 
                 font-size: 36px; 
                 font-weight: bold;
+                color: #ffa500;
             }
         """)
         self.snrber_button.clicked.connect(self.open_snrber_dialog)
@@ -124,9 +127,10 @@ class MainWindow(QMainWindow):
         self.eyediag_button.setStyleSheet("""
             QPushButton {
                 text-align: center; 
-                padding-top: 120px; 
+                padding-top: 75px; 
                 font-size: 36px; /* Increased text size */
                 font-weight: bold;
+                color: #ffa500;
             }
         """)
         self.eyediag_button.clicked.connect(self.open_eyediag_dialog)
