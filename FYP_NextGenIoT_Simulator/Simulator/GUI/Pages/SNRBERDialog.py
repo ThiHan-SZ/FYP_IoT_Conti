@@ -38,7 +38,8 @@ class SNRBERDialog(QDialog):
 
         font = QFont("SF Pro", 10)
         section_font = QFont("SF Pro", 12, QFont.Bold)
-        self.selected_channels = set()  
+        self.selected_channels = set()
+        self.selected_modulations = set()  # Store the selected modulation mode
 
         self.main_layout = QVBoxLayout(self)
 
