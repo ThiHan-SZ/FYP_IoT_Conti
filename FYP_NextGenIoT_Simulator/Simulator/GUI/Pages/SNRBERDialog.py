@@ -11,9 +11,6 @@ from Simulator.SimulationClassCompact.SNRBERClass import SNRBERTest
 
 from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
 
-import matplotlib.pyplot as plt
-from numpy import arange, array, sum, abs 
-
 class SNRBERDialog(QDialog):
     def __init__(self):
         super().__init__()

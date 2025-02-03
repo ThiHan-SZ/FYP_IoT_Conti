@@ -1,8 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QDialog, QVBoxLayout, QHBoxLayout, 
-    QWidget,QPushButton, QLineEdit, QLabel, QTextEdit, QCheckBox, 
-    QSlider
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, 
+    QWidget,QPushButton, QLabel
 )
 
 from PyQt5.QtCore import Qt, QSize
