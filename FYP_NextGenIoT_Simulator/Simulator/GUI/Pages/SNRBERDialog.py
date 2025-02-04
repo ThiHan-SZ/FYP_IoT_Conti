@@ -76,7 +76,6 @@ class SNRBERDialog(QDialog):
         # Buttons for Channel Modes
         channel_mode_buttons_layout = QHBoxLayout()
         self.channel_buttons = {
-            "AWGN": QPushButton("AWGN", self),
             "Fading": QPushButton("Fading", self),
             "Freq Drift": QPushButton("Freq Drift", self),
             "Freq Offset": QPushButton("Freq Offset", self),
@@ -522,8 +521,27 @@ class SNRBERDialog(QDialog):
                     seed = int(self.noise_generator_seed_input.text())
                 except ValueError:
                     raise ValueError("Invalid seed value. Please enter a valid integer.")
+                
+            # Collect dynamic parameters (e.g., AWGN SNR, Freq Drift)
+            channel_params = {}
+            for channel, widget in self.conditional_inputs.items():
+                if widget.isVisible():
+                    text = None
+                    input_field = widget.findChild(QLineEdit)
+                    if not input_field: # Special case for combobox
+                        text =  widget.currentText().strip()
+                    if (input_field and input_field.text().strip()):
+                        channel_params[channel] = float(input_field.text().strip())
+                    elif text and text != "Select Fading Type":
+                        channel_params[channel] = text
+                    else:
+                        self.display_message(f"Error: Please enter a valid value for {channel}.")
+                        return
             
-            SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed)
+            if channel_params:
+                SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed, self.selected_channels, channel_params)
+            else:
+                SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed)
             
             figure = SNRBER_Test.plotSNRBER(message)
             GraphViewer = ScrollableGraphDialog(self)

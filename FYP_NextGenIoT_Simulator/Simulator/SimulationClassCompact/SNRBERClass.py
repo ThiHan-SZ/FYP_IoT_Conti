@@ -1,12 +1,12 @@
 from matplotlib import pyplot as plt
 from Simulator.SimulationClassCompact.ModulationClass import Modulator
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
-from Simulator.SimulationClassCompact.ChannelClass import SimpleGWNChannel_dB as AWGN
+import Simulator.SimulationClassCompact.ChannelClass as Channel
 
 from numpy import array,arange
 
 class SNRBERTest:
-    def __init__(self,selected_modes,bit_rate,carrier_freq,snr_up,snr_down,seed):
+    def __init__(self,selected_modes,bit_rate,carrier_freq,snr_up,snr_down,seed,selected_channels=None,channel_params=None):
         """
         Initialize the SNRBERTest object.
 
@@ -24,7 +24,14 @@ class SNRBERTest:
             Lower limit of the SNR test range (dB).
         seed : int
             Seed for the AWGN channel.
-
+            
+        Optional Inputs [Both must be provided]
+        ----------
+        selected_channels : list of str, optional
+            List of channels to be applied to the signal. Defaults to None.
+        channel_params : dict, optional
+            Dictionary of channel parameters. Defaults to None.
+        
         Attributes
         ----------
         selected_modes : list of str
@@ -50,7 +57,7 @@ class SNRBERTest:
         self.modulators = {mode: Modulator(mode, bit_rate, carrier_freq) for mode in selected_modes}
         self.demodulators = {mode: Demodulator(mode, bit_rate, self.modulators[mode].sampling_rate) for mode in selected_modes}
         self.snr_test_range = arange(snr_down, snr_up + 1)
-        self.channels = {snr: AWGN(snr, seed=seed) for snr in self.snr_test_range}
+        self.channels = {snr: Channel.SimpleGWNChannel_dB(snr, seed=seed) for snr in self.snr_test_range}
         
         self.modulated_signals = {mode: (None, None) for mode in selected_modes}
         self.ber_dict = {mode: [] for mode in selected_modes}
@@ -59,6 +66,12 @@ class SNRBERTest:
         
         self.current_iter = 0
         self.max_iters = len(self.snr_test_range) * len(selected_modes)
+        
+        if channel_params and selected_channels:
+            self.channel_params = channel_params
+            self.selected_channels = selected_channels
+        else:
+            raise ValueError("Both channel_params and selected_channels must be provided to apply additional channels.")
 
     def __simulateSNRBER(self,message):
         comparison_string = array([int(bit) for bit in Modulator.msgchar2bit_static(message)])
@@ -68,14 +81,18 @@ class SNRBERTest:
             demodulator = self.demodulators[mode]
             
             bit_string = modulator.msgchar2bit(message)
-            time_axis, modulated_signal = modulator.modulate(bit_string)
-            self.modulated_signals[mode] = (time_axis, modulated_signal)
+            time_axis, signal = modulator.modulate(bit_string)
+            self.modulated_signals[mode] = (time_axis, signal)
             
             for snr in self.snr_test_range:
                 self.current_iter += 1
                 channel = self.channels[snr]
-                noisy_signal = channel.add_noise(modulated_signal)
-                demodulated_signal = demodulator.demodulate(noisy_signal)
+                signal = channel.add_noise(signal)
+                
+                if self.selected_channels:
+                    signal = Channel.ApplyChannels(self.selected_channels, self.channel_params, signal, modulator.sampling_rate)
+                    
+                demodulated_signal = demodulator.demodulate(signal)
                 demodulated_bits = demodulator.demapping(demodulated_signal)[1]
                 error_bits = sum(abs(comparison_string - demodulated_bits[:len(comparison_string)]))
                 self.ber_dict[mode].append(error_bits / len(bit_string))
