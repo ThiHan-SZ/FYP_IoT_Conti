@@ -67,10 +67,13 @@ class SNRBERTest:
         self.current_iter = 0
         self.max_iters = len(self.snr_test_range) * len(selected_modes)
         
+        self.channel_params = None
+        self.selected_channels = None
+        
         if channel_params and selected_channels:
             self.channel_params = channel_params
             self.selected_channels = selected_channels
-        else:
+        elif channel_params and not selected_channels or not channel_params and selected_channels:
             raise ValueError("Both channel_params and selected_channels must be provided to apply additional channels.")
 
     def __simulateSNRBER(self,message):
@@ -81,10 +84,11 @@ class SNRBERTest:
             demodulator = self.demodulators[mode]
             
             bit_string = modulator.msgchar2bit(message)
-            time_axis, signal = modulator.modulate(bit_string)
-            self.modulated_signals[mode] = (time_axis, signal)
+            time_axis, modulated_signal = modulator.modulate(bit_string)
+            self.modulated_signals[mode] = (time_axis, modulated_signal)
             
             for snr in self.snr_test_range:
+                signal = modulated_signal
                 self.current_iter += 1
                 channel = self.channels[snr]
                 signal = channel.add_noise(signal)
