@@ -5,38 +5,29 @@ import sys
 import scipy.signal as sig 
 from matplotlib.widgets import Button
 
-
 '''# Define parameters
 Ts = 1/2000
 time = 0.3
 t = np.arange(0, time, Ts)  # time vector
-
 f0 = 200
 phoff = np.pi/2  # carrier freq. and phase
 fc = 200  # assumed freq. at receiver
-
 # Generate received signal
 rp = np.cos(2*np.pi*fc*t + phoff)
-
 # Define filter parameters
 fl = 100
 ff = np.array([0, 0.01, 0.02, 1])
 fa = np.array([1, 1, 0, 0])
-
 # Design LPF using firpm equivalent (scipy.signal.firwin)
 h = sig.firwin2(fl+1, ff,fa)
-
 # Define algorithm parameters
 mu = 0.01  # algorithm stepsize
-
 # Initialize vectors
 theta = np.zeros(len(t))
 theta[0] = 0  # initialize vector for estimates
 z = np.zeros(fl+1)  # initialize buffer for LPF
-
 # Initialize VCO output vector
 VCO = np.zeros(len(t))
-
 # Main loop
 for k in range(len(t)-1):
     VCO[k] = np.sin(2*np.pi*f0*t[k] + theta[k])
@@ -54,25 +45,26 @@ axs[2].plot(t, theta)
 plt.show()'''
 
 modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-mod_type = 'QAM64'
-
+mod_type = 'QAM16'
 sys.path.insert(1, r"FYP_NextGenIoT_Simulator\Simulator")
 import pickle
 import scipy.spatial as spysp
 import scipy.io.wavfile as wav
 import commpy
+
 with open(f'FYP_NextGenIoT_Simulator/QAM_LUT_pkl/R{mod_type}.pkl', 'rb') as file:
     qam_const = pickle.load(file)
-
 qam_tree = spysp.KDTree([k for k in qam_const.keys()])
+
 keys = qam_const.keys()
-sampling_rate ,modc = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\test_file__AsciiTabletxt__200kHz_16kbps_N{mod_type}.wav')
-_  ,modr = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\test_file__AsciiTabletxt__200kHz_16kbps_N{mod_type}.wav')
+
+sampling_rate ,modc = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__5010Char2BUTF8__200kHz_16kbps_N{mod_type}.wav')
+_  ,modr = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__5010Char2BUTF8__200kHz_16kbps_N{mod_type}.wav')
 
 modr*=2
 modc*=2
-
 order = modulation_modes[mod_type]
+
 CARRIER = 2e5
 baud_rate = 16000/order
 symbol_period = 1/baud_rate
@@ -85,8 +77,8 @@ low_pass_delay = (low_pass_filter_order // 2) / sampling_rate
 low_pass_filter = sig.firwin(low_pass_filter_order, low_pass_filter_cutoff/(sampling_rate/2), fs = sampling_rate)
 
 RRC_delay = 3*symbol_period
-_, rrc = commpy.filters.rrcosfilter(N=int(2*sampling_rate*RRC_delay),alpha=0.5,Ts=symbol_period, Fs=sampling_rate)
 
+_, rrc = commpy.filters.rrcosfilter(N=int(2*sampling_rate*RRC_delay),alpha=0.5,Ts=symbol_period, Fs=sampling_rate)
 demodulator_total_delay = int((2*RRC_delay + low_pass_delay) * sampling_rate)
 
 if order <= 2:
@@ -96,7 +88,7 @@ else:
 
 def downconverter(signal):
     t = np.linspace(0, len(signal)/sampling_rate, len(signal), endpoint=False)
-    baseband_signal = signal * np.exp(-1j* (2 * np.pi * (CARRIER) * t) + 5)
+    baseband_signal = signal * np.exp(-1j* (2 * np.pi * (CARRIER) * t)) 
     I = baseband_signal.real
     Q = baseband_signal.imag
     return I, Q, t
@@ -104,36 +96,28 @@ def downconverter(signal):
 guide_I_base, guide_Q_base, t = downconverter(modc)
 guide_I_lp = sig.lfilter(low_pass_filter, 1, guide_I_base)
 guide_Q_lp = sig.lfilter(low_pass_filter, 1, guide_Q_base)
-
 guide_baseband_signal_lp = guide_I_lp + 1j*guide_Q_lp
 guide_RC_signal = sig.convolve(guide_baseband_signal_lp, rrc) / np.sum(rrc**2) * 2
-
 guide_RC_signal *= scaler
-
 guide_Signal = guide_RC_signal[:-(6*samples_per_symbol)]
-
 guide_Symbols = guide_Signal[demodulator_total_delay::samples_per_symbol]
-
 foff = 1e2
 poff = np.pi*0.2
-modr_baseband = modr * np.exp(-1j* (2 * np.pi * (CARRIER) * t))
+
+#Modr Downconversion, add missmatch here
+phoff = np.pi/3 # 36 deg
+modr_baseband = modr * np.exp(-1j * (2 * np.pi * (CARRIER) * t + phoff))
 I_base, Q_base = modr_baseband.real, modr_baseband.imag 
-
-
 I_lp = sig.lfilter(low_pass_filter, 1, I_base)
 Q_lp = sig.lfilter(low_pass_filter, 1, Q_base)
-
 baseband_signal_lp = I_lp + 1j*Q_lp
 RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
-
 #Scale the signal to original constellation
-
 RC_signal *= scaler
 
 Signal = RC_signal[:-(6*samples_per_symbol)]
 
 pbSymbols = Signal[demodulator_total_delay::samples_per_symbol]
-
 bbSymbols = np.zeros(len(pbSymbols), dtype=complex)
 theta = np.zeros(len(pbSymbols))
 
@@ -141,13 +125,11 @@ N=1000
 firstNSymbol = guide_Symbols[:N]
 expectedCoord = [list(keys)[i] for i in qam_tree.query(list(zip(firstNSymbol.real, firstNSymbol.imag)))[1]] # qam_tree.query(list(zip(firstNSymbol.real, firstNSymbol.imag)))[1]
 
-
 '''subsetN = 1000
 deltaAng = np.zeros(subsetN)
 bbSymbols = np.zeros(subsetN, dtype=complex)
 phi=0
 mu = 0.1
-
 k=1
 for s in pbSymbols[:subsetN]:
     bbSymbols[k-1] = s * np.exp(-1j * phi)
@@ -157,16 +139,13 @@ for s in pbSymbols[:subsetN]:
     decisionSymbol = coord[0] + 1j*coord[1]
             
     decisionError = decisionSymbol - bbSymbols[k-1]
-
     differenceAng = (np.atan2(np.imag(np.conj(decisionSymbol) * bbSymbols[k-1]), np.real(np.conj(decisionSymbol) * bbSymbols[k-1])))
-
     deltaAng[k-1] = (differenceAng)
     phi += differenceAng * mu
     
     print(phi/np.pi)
     
     k+=1
-
 fig,axs = plt.subplots(1,1, figsize=(10,10))
 scaler = ((2**(order/2))-1) if order > 2 else 1
 x_ticks = np.arange(-scaler, scaler+1, 2)
@@ -175,7 +154,6 @@ axs.set(xlim=[x_ticks.min()-2, x_ticks.max()+2], ylim=[y_ticks.min()-2, y_ticks.
 axs.grid(True)
 axs.set_xticks(x_ticks)
 axs.set_yticks(y_ticks)
-
 #axs.scatter(pbSymbols[:subsetN].real, pbSymbols[:subsetN].imag)
 axs.scatter(guide_Symbols[:subsetN].real, guide_Symbols[:subsetN].imag)
 expectedI,expectedQ = zip(*expectedCoord[:subsetN])
@@ -183,15 +161,12 @@ axs.scatter(expectedI,expectedQ)
 axs.scatter(bbSymbols.real, bbSymbols.imag, color='red')
 axs.legend(['Guide Symbols', 'Expected Symbols','Adjusted Symbols'])'''
 
-
 k=1
-mu=0.05
+mu=0.5
 phaseNow = 0
 phaseEst = 0
-
 for s in pbSymbols:
     bbSymbols[k-1] = s * np.exp(-1j * phaseNow)
-
     if k <= N:        
         coord = expectedCoord[k-1]
         decisionSymbol = coord[0] + 1j*coord[1]
@@ -206,7 +181,6 @@ for s in pbSymbols:
     k += 1
 
 fig3,ax3 = plt.subplots(3,1, figsize=(10,10))
-
 scaler = ((2**(order/2))-1) if order > 2 else 1
 x_ticks = np.arange(-scaler, scaler+1, 2)
 y_ticks = np.arange(-scaler, scaler+1, 2)
@@ -219,18 +193,19 @@ ax3[1].set_yticks(y_ticks)
 ax3[2].grid(True)
 ax3[2].set_xticks(x_ticks)
 ax3[2].set_yticks(y_ticks)
-
 ax3[0].scatter(guide_Symbols.real, guide_Symbols.imag)
 ax3[1].scatter(pbSymbols.real, pbSymbols.imag)
 ax3[2].scatter(bbSymbols.real, bbSymbols.imag)
-
 fig2,ax2 = plt.subplots()
 ax2.plot(theta)    
-
 # Initialize the figure and axes
 fig, ax = plt.subplots()
-scatter = ax.scatter(bbSymbols[0].real, bbSymbols[0].imag, label='BB Symbols', c='b')
-scatter_guide = ax.scatter(guide_Symbols[0].real, guide_Symbols[0].imag, label='Guide Symbols', c='r')
+scatter = ax.scatter(bbSymbols[0].real, bbSymbols[0].imag, label='BB Symbols', c='b',s=45)
+scatter_current = ax.scatter(bbSymbols[0].real, bbSymbols[0].imag, label='BB Current Symbol', c='r',s=15)
+
+scatter_guide = ax.scatter(guide_Symbols[0].real, guide_Symbols[0].imag, label='Guide Symbols', c='purple',s=45)
+scatter_guide_current = ax.scatter(guide_Symbols[0].real, guide_Symbols[0].imag, label='Guide Current Symbol', c='y',s=15)
+
 ax.set(xlim=[x_ticks.min()-2, x_ticks.max()+2], ylim=[y_ticks.min()-2, y_ticks.max()+2], xlabel='I', ylabel='Q')
 ax.grid(True)
 scaler = ((2**(order/2))-1) if order > 2 else 1
@@ -238,26 +213,34 @@ x_ticks = np.arange(-scaler, scaler+1, 2)
 y_ticks = np.arange(-scaler, scaler+1, 2)
 ax.set_xticks(x_ticks)
 ax.set_yticks(y_ticks)
-
 # Function to update the scatter plot
 def update(frame):
-
     # Update the scatter plot data
-    bb_symbols = bbSymbols[:frame]
-    guide_Symbolsframe = guide_Symbols[:frame]
+    bb_symbols = bbSymbols[frame-5:frame]
+    guide_Symbolsframe = guide_Symbols[frame-5:frame]
+
+    bb_current = bbSymbols[frame-5]
+    guide_Symbols_current = guide_Symbols[frame-5]
+
     bb_symbols = np.column_stack((bb_symbols.real, bb_symbols.imag))
+    bb_current = np.column_stack((bb_current.real, bb_current.imag))
+
     guide_Symbolsframe = np.column_stack((guide_Symbolsframe.real, guide_Symbolsframe.imag))
+    guide_Symbols_current  = np.column_stack((guide_Symbols_current.real, guide_Symbols_current.imag))
     
     scatter.set_offsets(bb_symbols)
+    scatter_current.set_offsets(bb_current)
+
     scatter_guide.set_offsets(guide_Symbolsframe)
+    scatter_guide_current.set_offsets(guide_Symbols_current)
     
-    fig.suptitle(f"Frame {frame}")
+    fig.suptitle(f"Frame {frame-5}")
+    fig.legend(['Decoded Symbols','Current Decoded Symbol', 'Guide Symbols', 'Current Guide Symbol'])
     # Return the artists to be updated
     return scatter, scatter_guide
-
 # Create the animation
-ani = animation.FuncAnimation(fig, update, frames=len(bbSymbols), interval=16)
-
+frames = len(bbSymbols[:2500])
+ani = animation.FuncAnimation(fig, update, frames=frames, interval=16)
 # Show the animation
 plt.show()
 '''
