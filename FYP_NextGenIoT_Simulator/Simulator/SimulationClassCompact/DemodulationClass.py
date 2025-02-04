@@ -254,21 +254,21 @@ class Demodulator:
         self.ax['Iplot'].plot(t_axis/self.symbol_period, demod_signal.real)
         self.ax['Iplot'].stem(t_samples/self.symbol_period, demod_signal_samples.real, linefmt='r', markerfmt='ro')
         self.ax['Iplot'].set_title("I-Component")
-        self.ax['Iplot'].set_xlabel("Symbol Periods")
+        self.ax['Iplot'].set_xlabel("Symbol Periods (s)")
         self.ax['Iplot'].set_ylabel("Amplitude")
         self.ax['Iplot'].grid(True)
 
         self.ax['Qplot'].plot(t_axis/self.symbol_period, demod_signal.imag)
         self.ax['Qplot'].stem(t_samples/self.symbol_period, demod_signal_samples.imag, linefmt='r', markerfmt='ro')
         self.ax['Qplot'].set_title("Q-Component")
-        self.ax['Qplot'].set_xlabel("Symbol Periods")
+        self.ax['Qplot'].set_xlabel("Symbol Periods (s)")
         self.ax['Qplot'].set_ylabel("Amplitude")
         self.ax['Qplot'].grid(True)
     
     def received_constellation(self, demod_signal):
         demod_signal = demod_signal[:-(6*self.samples_per_symbol)]
         demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
-        self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag)
+        self.ax['ConstPlot'].scatter(demod_signal_samples.real, demod_signal_samples.imag,xunits='V', yunits='V')
         self.ax['ConstPlot'].set_title("Received Constellation")
         self.ax['ConstPlot'].set_xlabel("I")
         self.ax['ConstPlot'].set_ylabel("Q")
@@ -293,10 +293,19 @@ class Demodulator:
         q_samples = np.array(q_samples).T if self.modulation_mode != 'BPSK' else None
         time_axis = np.linspace(-self.symbol_period, self.symbol_period, 2 * self.samples_per_symbol)
         if self.modulation_mode != 'BPSK':
-            self.ax['Iplot'].plot(time_axis, i_samples, color='r')
-            self.ax['Qplot'].plot(time_axis, q_samples, color='b')
+            self.ax['Iplot'].plot(time_axis, i_samples, color='r',xunits='s', yunits='V')
+            self.ax['Qplot'].plot(time_axis, q_samples, color='b',xunits='s', yunits='V')
+            self.ax['Iplot'].set_title("I-Component")
+            self.ax['Qplot'].set_title("Q-Component")
+            self.ax['Iplot'].set_xlabel("Time (s)")
+            self.ax['Qplot'].set_xlabel("Time (s)")
+            self.ax['Iplot'].set_ylabel("Amplitude")
+            self.ax['Qplot'].set_ylabel("Amplitude")
         else:
-            self.ax['Iplot'].plot(time_axis, i_samples, color='r')
+            self.ax['Iplot'].plot(time_axis, i_samples, color='r',xunits='s', yunits='V')
+            self.ax['Iplot'].set_title("I-Component")
+            self.ax['Iplot'].set_xlabel("Time (s)")
+            self.ax['Iplot'].set_ylabel("Amplitude")
         
     def auto_plot(self, demod_signal):
         """

@@ -357,10 +357,16 @@ class ModulationDialog(QDialog):
                 filename = self.file_name_input.text()
                 
                 try:
-                    if (len(filename) > 16) or (len(message) > 16 and not filename):
+                    if (len(message) > 16 and not filename):
                         raise ValueError("PLEASE ENTER A FILE NAME WITH UP TO 16 CHARACTERS. [MESSAGE TOO LONG FOR DEFAULT MODE]")
+                    elif len(filename) > 16 and len(message) <= 16:
+                        self.display_message("FILE NAME EXCEEDS 16 CHARACTER LIMIT, REVERTING TO DEFAULT NAME")
+                        filename = None
+                    elif len(filename) > 16 and len(message) > 16:
+                        raise ValueError("PLEASE ENTER A FILE NAME WITH UP TO 16 CHARACTERS. [MESSAGE AND FILE NAME TOO LONG]")
                 except ValueError as e:
-                    self.display_message(e)
+                    self.display_message(str(e))
+                    return
                     
                 if "QAM" in modulator.modulation_mode:
                     save_mode = 'N'+modulator.modulation_mode
