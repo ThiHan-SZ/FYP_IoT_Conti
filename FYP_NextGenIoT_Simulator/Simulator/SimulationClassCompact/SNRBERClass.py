@@ -123,7 +123,7 @@ class SNRBERTest:
         self.ax.set_yscale('symlog', linthresh=1e-5)
         ticks = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
         self.ax.set_yticks(ticks)
-        self.ax.set_ylim(1e-6, None)  # Set lower y-limit above zero
+        self.ax.set_ylim(1e-5, None)  # Set lower y-limit above zero
         
         # Grid
         self.ax.grid(which="both", linestyle="--", linewidth=0.5)
