@@ -167,7 +167,7 @@ class SimpleFrequencyOffsetChannel:
         Returns:
         - np.array: The signal with applied frequency offset.
         """
-        time = arange(0, len(signal), dtype=float) / sampling_rate
+        time = arange(0, 1/sampling_rate*len(signal), 1/sampling_rate)
         # Apply frequency offset to the signal
         signal = signal * exp(1j * 2 * pi * self.frequency_offset * time)
         return signal

@@ -26,7 +26,7 @@ class Demodulator:
         #Bit Rate Parameters
         self.baud_rate = bit_rate/self.order
         self.symbol_period = 1/self.baud_rate
-        self.oversampling_factor = 10
+        self.oversampling_factor = 8
         self.sampling_rate = sampling_rate
         self.samples_per_symbol = int(self.sampling_rate/self.baud_rate)
         
