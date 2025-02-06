@@ -34,14 +34,13 @@ class SNRBERDialog(QDialog):
         """)
 
         font = QFont("SF Pro", 10)
-        section_font = QFont("SF Pro", 10)
         self.selected_channels = set()
         self.selected_modulations = []  # Store the selected modulation mode
 
         self.main_layout = QVBoxLayout(self)
 
         modulation_type_layout = QVBoxLayout()
-        modulation_type_label = QLabel("Modem for SNR BER Test:", font=section_font)
+        modulation_type_label = QLabel("Modemsfor SNR BER Test:", font=font)
         modulation_type_layout.addWidget(modulation_type_label, alignment=Qt.AlignLeft)
 
         # Buttons for Modulation Types
@@ -259,7 +258,7 @@ class SNRBERDialog(QDialog):
 
         # SNR Lower and Upper Bound Inputs
         snr_input_layout = QVBoxLayout()
-        snr_label = QLabel("SNR Bounds:", font=section_font)
+        snr_label = QLabel("SNR Bounds:", font=font)
         snr_input_layout.addSpacing(20)
         snr_input_layout.addWidget(snr_label, alignment=Qt.AlignLeft)
 
@@ -329,13 +328,16 @@ class SNRBERDialog(QDialog):
         button = self.modulation_buttons[mod_name]
         if button.property("selected") == "true":
             button.setProperty("selected", "false")
+            try:
+                self.selected_modulations.remove(mod_name)
+            except ValueError:
+                pass
             button.setStyle(button.style())
-            
             self.display_message(f"{mod_name} deselected")
         else:
             button.setProperty("selected", "true")
             button.setStyle(button.style())
-            self.selected_modulations.add(mod_name)
+            self.selected_modulations.append(mod_name)
             self.display_message(f"{mod_name} selected")
 
     def select_file(self):
