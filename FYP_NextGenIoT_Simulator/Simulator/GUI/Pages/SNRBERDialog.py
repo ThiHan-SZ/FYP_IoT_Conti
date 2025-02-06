@@ -14,7 +14,7 @@ from Simulator.GUI.Pages.GraphDialog import ScrollableGraphDialog
 class SNRBERDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SNR BER")
+        self.setWindowTitle("SNR / BER")
         self.setGeometry(100, 100, 1200, 1000)
 
         # Apply dark theme styling
