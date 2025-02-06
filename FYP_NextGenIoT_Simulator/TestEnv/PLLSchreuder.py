@@ -45,7 +45,7 @@ axs[2].plot(t, theta)
 plt.show()'''
 
 modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-mod_type = 'QAM16'
+mod_type = 'QAM64'
 sys.path.insert(1, r"FYP_NextGenIoT_Simulator\Simulator")
 import pickle
 import scipy.spatial as spysp
@@ -106,7 +106,7 @@ poff = np.pi*0.2
 
 #Modr Downconversion, add missmatch here
 phoff = np.pi/3 # 36 deg
-modr_baseband = modr * np.exp(-1j * (2 * np.pi * (CARRIER) * t + phoff))
+modr_baseband = modr * np.exp(-1j * (2 * np.pi * (CARRIER) * t + phoff * t + phoff))
 I_base, Q_base = modr_baseband.real, modr_baseband.imag 
 I_lp = sig.lfilter(low_pass_filter, 1, I_base)
 Q_lp = sig.lfilter(low_pass_filter, 1, Q_base)
@@ -121,9 +121,9 @@ pbSymbols = Signal[demodulator_total_delay::samples_per_symbol]
 bbSymbols = np.zeros(len(pbSymbols), dtype=complex)
 theta = np.zeros(len(pbSymbols))
 
-N=1000
+N=100
 firstNSymbol = guide_Symbols[:N]
-expectedCoord = [list(keys)[i] for i in qam_tree.query(list(zip(firstNSymbol.real, firstNSymbol.imag)))[1]] # qam_tree.query(list(zip(firstNSymbol.real, firstNSymbol.imag)))[1]
+expectedCoord = [list(keys)[i] for i in qam_tree.query(list(zip(guide_Symbols.real, guide_Symbols.imag)))[1]] # qam_tree.query(list(zip(firstNSymbol.real, firstNSymbol.imag)))[1]
 
 '''subsetN = 1000
 deltaAng = np.zeros(subsetN)
@@ -162,12 +162,12 @@ axs.scatter(bbSymbols.real, bbSymbols.imag, color='red')
 axs.legend(['Guide Symbols', 'Expected Symbols','Adjusted Symbols'])'''
 
 k=1
-mu=0.5
+mu=0.05
 phaseNow = 0
 phaseEst = 0
 for s in pbSymbols:
     bbSymbols[k-1] = s * np.exp(-1j * phaseNow)
-    if k <= N:        
+    if k%1000 <= N:        
         coord = expectedCoord[k-1]
         decisionSymbol = coord[0] + 1j*coord[1]
         
@@ -177,7 +177,14 @@ for s in pbSymbols:
         theta[k-1] = differenceAng
         
         phaseNow += differenceAng * mu
-    
+    else:
+        coord = list(keys)[qam_tree.query(list((bbSymbols[k-1].real, bbSymbols[k-1].imag)))[1]]
+        decisionSymbol = coord[0] + 1j*coord[1]
+        decisionError = decisionSymbol - bbSymbols[k-1]
+        differenceAng = (np.atan2(np.imag(np.conj(decisionSymbol) * bbSymbols[k-1]), np.real(np.conj(decisionSymbol) * bbSymbols[k-1])))
+        theta[k-1] = differenceAng
+        
+        phaseNow += differenceAng * mu
     k += 1
 
 fig3,ax3 = plt.subplots(3,1, figsize=(10,10))
@@ -187,17 +194,24 @@ y_ticks = np.arange(-scaler, scaler+1, 2)
 ax3[0].grid(True)
 ax3[0].set_xticks(x_ticks)
 ax3[0].set_yticks(y_ticks)
+ax3[0].set_title('Guide Symbols')
 ax3[1].grid(True)
 ax3[1].set_xticks(x_ticks)
 ax3[1].set_yticks(y_ticks)
+ax3[1].set_title('Decoded Symbols before PLL')
 ax3[2].grid(True)
 ax3[2].set_xticks(x_ticks)
 ax3[2].set_yticks(y_ticks)
+ax3[2].set_title('Decoded Symbols after PLL')
 ax3[0].scatter(guide_Symbols.real, guide_Symbols.imag)
 ax3[1].scatter(pbSymbols.real, pbSymbols.imag)
 ax3[2].scatter(bbSymbols.real, bbSymbols.imag)
+
+fig3.suptitle('Symbols Decoded')
+
 fig2,ax2 = plt.subplots()
-ax2.plot(theta)    
+ax2.plot(theta)
+ax2.set_title('PLL Phase Angle (Radians)')
 # Initialize the figure and axes
 fig, ax = plt.subplots()
 scatter = ax.scatter(bbSymbols[0].real, bbSymbols[0].imag, label='BB Symbols', c='b',s=45)
@@ -234,13 +248,13 @@ def update(frame):
     scatter_guide.set_offsets(guide_Symbolsframe)
     scatter_guide_current.set_offsets(guide_Symbols_current)
     
-    fig.suptitle(f"Frame {frame-5}")
+    fig.suptitle(f"Symbols {frame-5} to {frame}")
     fig.legend(['Decoded Symbols','Current Decoded Symbol', 'Guide Symbols', 'Current Guide Symbol'])
     # Return the artists to be updated
     return scatter, scatter_guide
 # Create the animation
 frames = len(bbSymbols[:2500])
-ani = animation.FuncAnimation(fig, update, frames=frames, interval=16)
+ani = animation.FuncAnimation(fig, update, frames=frames, interval=1000)
 # Show the animation
 plt.show()
 '''
