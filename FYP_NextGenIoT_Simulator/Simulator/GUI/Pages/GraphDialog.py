@@ -18,7 +18,7 @@ class ScrollableGraphDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle("Graph Viewer")
-        self.setGeometry(150, 150, 2400, 1500)
+        self.setGeometry(150, 150, 1680, 945)
 
         # Create a scroll area
         self.scroll_area = QScrollArea()
