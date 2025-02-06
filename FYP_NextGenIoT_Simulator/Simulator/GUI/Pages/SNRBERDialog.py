@@ -36,7 +36,7 @@ class SNRBERDialog(QDialog):
         font = QFont("SF Pro", 10)
         section_font = QFont("SF Pro", 10)
         self.selected_channels = set()
-        self.selected_modulations = set()  # Store the selected modulation mode
+        self.selected_modulations = []  # Store the selected modulation mode
 
         self.main_layout = QVBoxLayout(self)
 
@@ -330,7 +330,7 @@ class SNRBERDialog(QDialog):
         if button.property("selected") == "true":
             button.setProperty("selected", "false")
             button.setStyle(button.style())
-            self.selected_modulations.discard(mod_name)
+            
             self.display_message(f"{mod_name} deselected")
         else:
             button.setProperty("selected", "true")
