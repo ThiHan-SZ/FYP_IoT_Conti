@@ -34,14 +34,14 @@ class SNRBERDialog(QDialog):
         """)
 
         font = QFont("SF Pro", 10)
-        section_font = QFont("SF Pro", 12, QFont.Bold)
+        section_font = QFont("SF Pro", 10)
         self.selected_channels = set()
         self.selected_modulations = set()  # Store the selected modulation mode
 
         self.main_layout = QVBoxLayout(self)
 
         modulation_type_layout = QVBoxLayout()
-        modulation_type_label = QLabel("Modulation Types for SNR BER Test:", font=section_font)
+        modulation_type_label = QLabel("Modem for SNR BER Test:", font=section_font)
         modulation_type_layout.addWidget(modulation_type_label, alignment=Qt.AlignLeft)
 
         # Buttons for Modulation Types
@@ -208,7 +208,6 @@ class SNRBERDialog(QDialog):
         self.file_button.clicked.connect(self.select_file)
 
         self.file_selection_layout.addWidget(self.file_label)
-        self.file_selection_layout.addSpacing(20)
         self.file_selection_layout.addWidget(self.file_button)
         self.file_selection_layout.addStretch()
         self.main_layout.addLayout(self.file_selection_layout)
@@ -261,6 +260,7 @@ class SNRBERDialog(QDialog):
         # SNR Lower and Upper Bound Inputs
         snr_input_layout = QVBoxLayout()
         snr_label = QLabel("SNR Bounds:", font=section_font)
+        snr_input_layout.addSpacing(20)
         snr_input_layout.addWidget(snr_label, alignment=Qt.AlignLeft)
 
         # SNR Lower Bound
