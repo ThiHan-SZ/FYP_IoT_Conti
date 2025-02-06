@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MultipleLocator
 from Simulator.SimulationClassCompact.ModulationClass import Modulator
 from Simulator.SimulationClassCompact.DemodulationClass import Demodulator
 import Simulator.SimulationClassCompact.ChannelClass as Channel
@@ -62,7 +63,7 @@ class SNRBERTest:
         self.modulated_signals = {mode: (None, None) for mode in selected_modes}
         self.ber_dict = {mode: [] for mode in selected_modes}
         
-        self.fig, self.ax = plt.subplots(1, 1)
+        self.fig, self.ax = plt.subplots(1, 1, layout="constrained")
         
         self.current_iter = 0
         self.max_iters = len(self.snr_test_range) * len(selected_modes)
@@ -122,12 +123,13 @@ class SNRBERTest:
         self.ax.set_yscale('symlog', linthresh=1e-5)
         ticks = [0, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
         self.ax.set_yticks(ticks)
+        self.ax.set_ylim(1e-6, None)  # Set lower y-limit above zero
         
         # Grid
         self.ax.grid(which="both", linestyle="--", linewidth=0.5)
         
         # Major tickers
-        from matplotlib.ticker import MultipleLocator; self.ax.xaxis.set_major_locator(MultipleLocator(1))
+        self.ax.xaxis.set_major_locator(MultipleLocator(1))
         
         colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'black']
         markers = ['o', 's', '^', 'v', '<', '>', 'd']
