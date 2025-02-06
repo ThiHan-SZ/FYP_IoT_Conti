@@ -107,7 +107,7 @@ class Demodulator:
         )
 
         baseband_signal_lp = I_lp + 1j*Q_lp
-        RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
+        RC_signal = sig.fftconvolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
 
         
         ##### Scaling #####

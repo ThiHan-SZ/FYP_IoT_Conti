@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
 
         # SNR BER and Eye Diagram Buttons
         perf_layout = QHBoxLayout()
-        self.snrber_button = QPushButton("SNR BER", self)
+        self.snrber_button = QPushButton("SNR / BER", self)
         self.snrber_button.setFont(button_font)
         self.snrber_button.setIcon(QIcon(r"GUIAssets/snr_icon.png"))
         self.snrber_button.setIconSize(QSize(250, 250))

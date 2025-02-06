@@ -110,14 +110,15 @@ class SimpleFlatFadingChannel:
                 
         elif self.type == "rician":
             assert self.rician_k is not None
+            linear_k = 10**(self.rician_k/10)
             # Line-of-sight (LOS) component
-            los_component = sqrt(self.rician_k / (self.rician_k + 1))
+            los_component = sqrt(linear_k / (linear_k + 1))
             
             # Diffuse component (Rayleigh fading)
             diffuse_component = (normal(0, 1, size=signal.shape) + 1j * normal(0, 1, size=signal.shape)) / sqrt(2)
             
             # Rician fading: LOS + diffuse components
-            h = los_component + sqrt(1 / (self.rician_k + 1)) * diffuse_component
+            h = los_component + sqrt(1 / (linear_k + 1)) * diffuse_component
             
         return signal * h
 

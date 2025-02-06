@@ -130,7 +130,7 @@ class DemodulationDialog(QDialog):
         self.conditional_inputs["Freq Offset"] = self.create_input_layout("Freq Offset:", "Enter freq offset (Hz)")
 
         # Delay Input
-        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples fraction) btw 0-1")
+        self.conditional_inputs["Delay"] = self.create_input_layout("Delay:", "Enter delay (samples fraction)")
 
         # Add all conditional inputs to the scroll layout
         for widget in self.conditional_inputs.values():
@@ -146,7 +146,7 @@ class DemodulationDialog(QDialog):
         self.bit_rate_input = QLineEdit(self)
         self.bit_rate_input.setStyleSheet("""
             QLineEdit:focus {
-                border: 2px solid #2b8cff; /* Highlight border when focused */
+                border: 2px solid #2b8cff; 
             }
         """)
         self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
@@ -269,10 +269,45 @@ class DemodulationDialog(QDialog):
         
         self.selected_mode = None  # Store the selected modulation mode
 
-    def select_demod_mode(self,mode):
-        """Set selected demod mode and update display"""
+    def select_demod_mode(self, mode):
         self.selected_mode = mode
+
+        if hasattr(self, "selected_button") and self.selected_button:
+            self.selected_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4e4e4e;
+                    color: white;
+                    border-radius: 5px;
+                    padding: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #5e5e5e;
+                }
+            """)
+
+        # Get the currently selected button
+        if mode in self.qam_buttons:
+            self.selected_button = self.qam_buttons[mode]
+        elif mode == "BPSK":
+            self.selected_button = self.bpsk_button
+        elif mode == "QPSK":
+            self.selected_button = self.qpsk_button
+        else:
+            self.selected_button = None
+
+        # Apply the blue color to the new selection
+        if self.selected_button:
+            self.selected_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2b8cff;
+                    color: white;
+                    border-radius: 5px;
+                    padding: 10px;
+                }
+            """)
+
         self.display_message(f"Selected Demodulation Mode: {self.selected_mode}")
+
 
     def create_input_layout(self, label_text, placeholder_text):
         layout = QHBoxLayout()
@@ -300,7 +335,7 @@ class DemodulationDialog(QDialog):
         widget.setLayout(layout)
         return widget
 
-    #toggling state
+    #toggling channel state
     def toggle_channel_button(self, channel_name):
         button = self.channel_buttons[channel_name]
 
@@ -416,10 +451,7 @@ class DemodulationDialog(QDialog):
             self.display_message("Demodulation complete!")
 
         except ValueError as e:
-            # Show verbose error information for ValueErrors
-            error_details = format_exc()  # Get the full traceback
-            self.display_message(f"ValueError: {str(e)}\nDetails:\n{error_details}")
+            self.display_message(f"ValueError: {str(e)}")
         except Exception as e:
-            # Show verbose error information for any other exceptions
-            error_details = format_exc()  # Get the full traceback
+            error_details = format_exc()
             self.display_message(f"Unexpected Error: {str(e)}\nDetails:\n{error_details}")  
