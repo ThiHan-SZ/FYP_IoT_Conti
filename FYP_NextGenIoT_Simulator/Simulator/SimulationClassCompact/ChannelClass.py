@@ -1,5 +1,5 @@
 from numpy import sum, abs, sqrt, exp, pi, arange,sinc,hamming
-from scipy.signal import convolve
+from scipy.signal import fftconvolve
 from numpy.random import normal, seed as nprseed
 
 class SimpleGWNChannel_dB:
@@ -67,7 +67,7 @@ class SimpleDelayChannel:
         h = sinc(n - self.delay) # calc filter taps
         h *= hamming(N) # window the filter to make sure it decays to 0 on both sides
         h /= sum(h) # normalize to get unity gain, we don't want to change the amplitude/power
-        signal = convolve(signal, h) # apply filter
+        signal = fftconvolve(signal, h) # apply filter
         return signal
     
 class SimpleFlatFadingChannel:
