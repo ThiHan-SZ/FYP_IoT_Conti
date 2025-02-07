@@ -27,7 +27,7 @@ class Modulator:
         self.symbol_period = 1/self.baud_rate
 
         #Sampler Parameters 
-        self.oversampling_factor = 8
+        self.oversampling_factor = 10
         self.sampling_rate = self.oversampling_factor*2*self.carrier_freq # 10x Oversampling Factor for any CF 
 
         #IQ Return and Save Parameters
