@@ -9,18 +9,16 @@ Carrier_freq = int(input("Enter carrier frequency: "))
 modulator = Mod.Modulator(mod_mode, bit_rate, Carrier_freq)
 demodulator = Demod.Demodulator(mod_mode, bit_rate, modulator.sampling_rate)
 
-modulator.RRC_alpha = 0.35
-demodulator.RRC_alpha = 0.35
-
 with open('FYP_NextGenIoT_Simulator/TestcaseFiles/UniformMax2ByteUTF8.txt', 'r',encoding="utf8") as file:
-    message = file.read()[:1000]
+    message = file.read()[:5000]
 
 bitstream = modulator.msgchar2bit(message)
 
-modulator.IQ_Return = False
+modulator.RRC_alpha=0.90
 
-_, modulated_signal = modulator.modulate(bitstream)
+modulator.IQ_Return = True
 
-modulator.save_signal = True
+t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay = modulator.modulate(bitstream)
+IQplot_fig = modulator.IQ_plot(t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
 
-modulator.save(f"user_file__UniformMax2ByteUTF8__200kHz_16kbps_N{mod_mode}.wav", modulated_signal)
+plt.show()
