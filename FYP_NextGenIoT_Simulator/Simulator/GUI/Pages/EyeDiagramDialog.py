@@ -195,8 +195,6 @@ class EyeDiagramDialog(QDialog):
         bitrate_layout.addStretch()
         input_layout.addLayout(bitrate_layout)
 
-        
-
         # Text File Select for Modulation
         # File Selection Section
         self.file_selection_layout = QHBoxLayout()
