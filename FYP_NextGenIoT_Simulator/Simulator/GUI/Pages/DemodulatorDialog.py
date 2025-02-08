@@ -219,8 +219,8 @@ class DemodulationDialog(QDialog):
                     truncated_path = f"...{file_path[-max_length:]}"  
                 else:
                     truncated_path = file_path
-                regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_dBk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
-                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kBd_[A-Z]{4}([0-9]{2,4})?.wav
+                regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_spbk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
+                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kBd_[A-Z]{4}(.[0-9]{2,4})?.wav
                 # Reverse matching is done to match files faster
                 if re.match(regexstring, file_path[::-1]):
                     self.file_label.setText(truncated_path)
@@ -437,6 +437,7 @@ class DemodulationDialog(QDialog):
             message, bit_array = demodulator.demapping(demodulated_signal)
 
             if self.plot_iq or self.plot_constellation:
+                demodulator.ax = demodulator.plot_setup(demodulator.fig)
                 demodulator.auto_plot(demodulated_signal)
                 GraphViewer.add_figure(demodulator.fig)
                 GraphViewer.exec_()
