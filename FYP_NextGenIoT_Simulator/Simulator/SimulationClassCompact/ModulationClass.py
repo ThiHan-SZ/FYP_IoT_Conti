@@ -185,6 +185,7 @@ class Modulator:
         
         impulses = I + 1j * Q
 
+
         # Precompute unique pulse shapes for the LUT
         unique_impulses, unique_indices = np.unique(impulses, return_inverse=True)
         pulseLUT = unique_impulses[:, None] * rrc  # Broadcasting over RRC filter
