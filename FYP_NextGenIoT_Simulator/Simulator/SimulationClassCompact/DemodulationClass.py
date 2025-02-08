@@ -108,7 +108,6 @@ class Demodulator:
         baseband_signal_lp = I_lp + 1j*Q_lp
         RC_signal = sig.fftconvolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
 
-        
         ##### Scaling #####
         if self.order <= 2:
             scaler = 1
@@ -315,6 +314,7 @@ class Demodulator:
             
         ### To extract figure, use self.fig 
         """
+        self.ax = self.plot_setup(self.fig)
         if self.plot_IQ and not self.plot_EyeDiagram:
             self.received_IQ(demod_signal)
         if self.plot_constellation:
