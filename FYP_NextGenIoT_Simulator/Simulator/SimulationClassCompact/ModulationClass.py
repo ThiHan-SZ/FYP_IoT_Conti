@@ -8,13 +8,13 @@ from matplotlib import pyplot as plt
 
 class Modulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-    def __init__(self, modulation_mode, baud_rate, carrier_freq) -> None:
+    def __init__(self, modulation_mode, bit_rate,carrier_freq) -> None:
         '''
             Initialize the Modulator class
 
             Parameters:
                 modulation_mode (str): Modulation mode to be used. Can be 'BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096'.
-                baud_rate (int): Baud rate of the signal.
+                bit_rate (int): Bit rate of the signal.
                 carrier_freq (int): Carrier frequency of the signal.
         '''
         #Modulation Parameters
@@ -23,9 +23,7 @@ class Modulator:
         self.order = self.modulation_modes[modulation_mode]
 
         #Bit Rate Parameters
-        #pre bit to baud uncorrupted
         self.baud_rate = bit_rate/self.order
-        
         self.symbol_period = 1/self.baud_rate
 
         #Sampler Parameters 
@@ -186,7 +184,6 @@ class Modulator:
         shaped_pulse_length = len(bitgroups) * samples_per_symbol + len(rrc) - 1
         
         impulses = I + 1j * Q
-
 
         # Precompute unique pulse shapes for the LUT
         unique_impulses, unique_indices = np.unique(impulses, return_inverse=True)

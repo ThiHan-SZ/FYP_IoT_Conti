@@ -7,7 +7,7 @@ import Simulator.SimulationClassCompact.ChannelClass as Channel
 from numpy import array,arange
 
 class SNRBERTest:
-    def __init__(self,selected_modes,baud_rate,carrier_freq,snr_up,snr_down,seed,selected_channels=None,channel_params=None):
+    def __init__(self,selected_modes,bit_rate,carrier_freq,snr_up,snr_down,seed,selected_channels=None,channel_params=None):
         """
         Initialize the SNRBERTest object.
 
@@ -15,8 +15,8 @@ class SNRBERTest:
         ----------
         selected_modes : list of str
             List of modulation modes to be tested. Must be in {'BPSK', 'QPSK', 'QAM16', 'QAM64', 'QAM256', 'QAM1024', 'QAM4096'}.
-        baud_rate : int
-            Baud rate of the signal.
+        bit_rate : int
+            Bit rate of the signal.
         carrier_freq : int
             Carrier frequency of the signal.
         snr_up : int
@@ -55,8 +55,8 @@ class SNRBERTest:
             Axis to plot the BER vs SNR.
         """
         self.selected_modes = selected_modes
-        self.modulators = {mode: Modulator(mode, baud_rate, carrier_freq) for mode in selected_modes}
-        self.demodulators = {mode: Demodulator(mode, baud_rate, self.modulators[mode].sampling_rate) for mode in selected_modes}
+        self.modulators = {mode: Modulator(mode, bit_rate, carrier_freq) for mode in selected_modes}
+        self.demodulators = {mode: Demodulator(mode, bit_rate, self.modulators[mode].sampling_rate) for mode in selected_modes}
         self.snr_test_range = arange(snr_down, snr_up + 1)
         self.channels = {snr: Channel.SimpleGWNChannel_dB(snr, seed=seed) for snr in self.snr_test_range}
         
