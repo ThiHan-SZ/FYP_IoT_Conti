@@ -140,22 +140,22 @@ class DemodulationDialog(QDialog):
         # Add scrollable area to the main layout
         self.main_layout.addWidget(self.scroll_area)
 
-        # Bit Rate Section
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
-        self.bit_rate_input.setStyleSheet("""
+        # Baud Rate Section
+        baudrate_layout = QHBoxLayout()
+        baudrate_label = QLabel("Baud Rate:", font=font)
+        self.baud_rate_input = QLineEdit(self)
+        self.baud_rate_input.setStyleSheet("""
             QLineEdit:focus {
                 border: 2px solid #2b8cff; 
             }
         """)
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        self.main_layout.addLayout(bitrate_layout)
+        self.baud_rate_input.setPlaceholderText("Enter baud rate (Bd)")
+        self.baud_rate_input.setFont(font)
+        self.baud_rate_input.setFixedWidth(400)
+        baudrate_layout.addWidget(baudrate_label)
+        baudrate_layout.addWidget(self.baud_rate_input)
+        baudrate_layout.addStretch()
+        self.main_layout.addLayout(baudrate_layout)
 
         """All Demodulation Modes"""
         # Demodulation Modes Section
@@ -220,7 +220,7 @@ class DemodulationDialog(QDialog):
                 else:
                     truncated_path = file_path
                 regexstring = r"^vaw\.([0-9]{2,4})?[A-Z]{4}_spbk\d+_zHk\d+__[^\s]{1,16}__elif_(resu|tset)"
-                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kbps_[A-Z]{4}(.[0-9]{2,4})?.wav
+                # Regexstring is the reverse of ^(user|test)_file__([^\s]{1,16})__\d+kHz_\d+kBd_[A-Z]{4}(.[0-9]{2,4})?.wav
                 # Reverse matching is done to match files faster
                 if re.match(regexstring, file_path[::-1]):
                     self.file_label.setText(truncated_path)
@@ -382,8 +382,8 @@ class DemodulationDialog(QDialog):
         try:
             GraphViewer = ScrollableGraphDialog(self)
             
-            if not self.bit_rate_input.text():
-                self.display_message("Error: Please enter a bit rate.")
+            if not self.baud_rate_input.text():
+                self.display_message("Error: Please enter a baud rate.")
                 return
             
             if not self.selected_mode:
@@ -414,7 +414,7 @@ class DemodulationDialog(QDialog):
                         self.display_message(f"Error: Please enter a valid value for {channel}.")
                         return
 
-            bit_rate = int(self.bit_rate_input.text())
+            baud_rate = int(self.baud_rate_input.text())
             mode = self.selected_mode #selected demod
             
             file_path = self.file_path
@@ -423,7 +423,7 @@ class DemodulationDialog(QDialog):
             
 
             # Initialize Demodulator
-            demodulator = Demodulator(mode, bit_rate, sampling_rate)
+            demodulator = Demodulator(mode, baud_rate, sampling_rate)
             demodulator.plot_IQ = self.plot_iq
             demodulator.plot_constellation = self.plot_constellation
 

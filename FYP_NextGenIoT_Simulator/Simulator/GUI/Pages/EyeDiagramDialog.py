@@ -166,7 +166,7 @@ class EyeDiagramDialog(QDialog):
         # Add scrollable area to the main layout
         self.main_layout.addWidget(self.scroll_area)
 
-        # Bit Rate and Carrier Frequency Inputs
+        # Baud Rate and Carrier Frequency Inputs
         input_layout = QVBoxLayout()
 
         # Carrier Frequency Input
@@ -183,17 +183,17 @@ class EyeDiagramDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Bit Rate Input
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        input_layout.addLayout(bitrate_layout)
+        # Baud Rate Input
+        baudrate_layout = QHBoxLayout()
+        baudrate_label = QLabel("Baud Rate:", font=font)
+        self.baud_rate_input = QLineEdit(self)
+        self.baud_rate_input.setPlaceholderText("Enter baud rate (Bd)")
+        self.baud_rate_input.setFont(font)
+        self.baud_rate_input.setFixedWidth(400)
+        baudrate_layout.addWidget(baudrate_label)
+        baudrate_layout.addWidget(self.baud_rate_input)
+        baudrate_layout.addStretch()
+        input_layout.addLayout(baudrate_layout)
 
         # Text File Select for Modulation
         # File Selection Section
@@ -456,8 +456,8 @@ class EyeDiagramDialog(QDialog):
                 self.display_message("Error: Please enter a carrier frequency.")
                 return
 
-            if not self.bit_rate_input.text():
-                self.display_message("Error: Please enter a bit rate.")
+            if not self.baud_rate_input.text():
+                self.display_message("Error: Please enter a baud rate.")
                 return
 
             if not self.file_path:
@@ -489,11 +489,11 @@ class EyeDiagramDialog(QDialog):
                         return
 
             carrier_freq = int(self.carrier_freq_input.text())
-            bit_rate = int(self.bit_rate_input.text())
+            baud_rate = int(self.baud_rate_input.text())
             mode = self.selected_mode #selected demod
 
-            modulator = Modulator(mode, bit_rate, carrier_freq)
-            demodulator = Demodulator(mode, bit_rate, modulator.sampling_rate)
+            modulator = Modulator(mode, baud_rate, carrier_freq)
+            demodulator = Demodulator(mode, baud_rate, modulator.sampling_rate)
             demodulator.plot_EyeDiagram = True #Set to true to plot eye diagram
             demodulator.plot_constellation = self.plot_constellation 
             bitstr = modulator.msgchar2bit(message)

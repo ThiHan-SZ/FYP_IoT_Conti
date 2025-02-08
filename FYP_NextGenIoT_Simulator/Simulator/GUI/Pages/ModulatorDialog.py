@@ -53,17 +53,17 @@ class ModulationDialog(QDialog):
         carrier_layout.addStretch()
         self.main_layout.addLayout(carrier_layout)
 
-        # Input for Bit Rate
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)  
-        self.bit_rate_input = QLineEdit(self)  
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        self.main_layout.addLayout(bitrate_layout)
+        # Input for Baud Rate
+        baudrate_layout = QHBoxLayout()
+        baudrate_label = QLabel("Baud Rate:", font=font)  
+        self.baud_rate_input = QLineEdit(self)  
+        self.baud_rate_input.setPlaceholderText("Enter baud rate (Bd)")
+        self.baud_rate_input.setFont(font)
+        self.baud_rate_input.setFixedWidth(400)
+        baudrate_layout.addWidget(baudrate_label)
+        baudrate_layout.addWidget(self.baud_rate_input)
+        baudrate_layout.addStretch()
+        self.main_layout.addLayout(baudrate_layout)
 
         # Modulation Mode
         modulation_layout = QVBoxLayout()
@@ -319,11 +319,11 @@ class ModulationDialog(QDialog):
         try:
             # Get inputs
             carrier_freq = self.carrier_freq_input.text()
-            bit_rate = self.bit_rate_input.text()
+            baud_rate = self.baud_rate_input.text()
             message = self.message_input.text()
             
             # Validate inputs
-            if not carrier_freq or not bit_rate or not self.selected_mode :
+            if not carrier_freq or not baud_rate or not self.selected_mode :
                 self.display_message("Please provide all inputs and select a modulation mode.")
                 return
             
@@ -337,10 +337,10 @@ class ModulationDialog(QDialog):
                     message = file.read()[:slicer]
 
             carrier_freq = int(carrier_freq)
-            bit_rate = int(bit_rate)
+            baud_rate = int(baud_rate)
 
             # Initialize the modulator and perform calculations
-            modulator = Modulator(self.selected_mode, bit_rate, carrier_freq)
+            modulator = Modulator(self.selected_mode, baud_rate, carrier_freq)
             modulator.IQ_Return = self.plot_iq
             modulator.save_signal = self.save_signal
             bitstr = modulator.msgchar2bit(message)
@@ -377,10 +377,10 @@ class ModulationDialog(QDialog):
                 
                 if (not filename) or (" " in filename):
                     self.display_message(f"File saved with default mode: {message}")
-                    modulator.save(f'user_file__{message}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig) 
+                    modulator.save(f'user_file__{message}__{int(modulator.carrier_freq/1000)}kHz_{int(baud_rate/1000)}kBd_{save_mode}.wav', modulated_sig) 
                 else:
                     self.display_message(f"File saved with named mode: {self.file_name_input.text()}")
-                    modulator.save(f'user_file__{self.file_name_input.text()}__{int(modulator.carrier_freq/1000)}kHz_{int(bit_rate/1000)}kbps_{save_mode}.wav', modulated_sig)
+                    modulator.save(f'user_file__{self.file_name_input.text()}__{int(modulator.carrier_freq/1000)}kHz_{int(baud_rate/1000)}kBd_{save_mode}.wav', modulated_sig)
             # Generate the figure
             GraphViewer = ScrollableGraphDialog(self)
             
