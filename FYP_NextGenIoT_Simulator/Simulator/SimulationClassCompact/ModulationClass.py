@@ -23,7 +23,7 @@ class Modulator:
         self.order = self.modulation_modes[modulation_mode]
 
         #Baud Rate Parameters
-        self.baud_rate = baud_rate/self.order
+        self.baud_rate = baud_rate
         self.symbol_period = 1/self.baud_rate
 
         #Sampler Parameters 
