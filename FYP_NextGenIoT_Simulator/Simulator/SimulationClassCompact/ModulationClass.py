@@ -201,8 +201,6 @@ class Modulator:
         for idx, impulse_idx in enumerate(unique_indices):
             start_idx = idx * samples_per_symbol
             Shaped_Pulse[start_idx:start_idx + len(rrc)] += pulseLUT[impulse_idx]
-            
-        #Shaped_Pulse = sig.fftconvolve(Dirac_Comb, rrc)[:shaped_pulse_length]
 
         t_Mixed_Signal = np.arange(0, shaped_pulse_length, dtype=float) / self.sampling_rate
 
