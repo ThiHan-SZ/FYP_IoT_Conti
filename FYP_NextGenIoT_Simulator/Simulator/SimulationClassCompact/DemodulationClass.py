@@ -9,13 +9,13 @@ import pickle
 
 class Demodulator:
     modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-    def __init__(self, modulation_mode, bit_rate, sampling_rate) -> None: 
+    def __init__(self, modulation_mode, baud_rate, sampling_rate) -> None: 
         """
         Demodulator Class Initializer
 
         Parameters:
             modulation_mode (str) : Modulation mode to be used for demodulation. Supported modes are BPSK, QPSK, QAM16, QAM64, QAM256, QAM1024, QAM4096
-            bit_rate (float) : Bit rate of the signal to be demodulated
+            baud_rate (float) : Baud rate of the signal to be demodulated
             sampling_rate (float) : Sampling rate of the signal to be demodulated
         """
         #Modulation Parameters
@@ -23,7 +23,7 @@ class Demodulator:
         self.order = self.modulation_modes[modulation_mode]
         
         #Bit Rate Parameters
-        self.baud_rate = bit_rate/self.order
+        self.baud_rate = baud_rate
         self.symbol_period = 1/self.baud_rate
         self.oversampling_factor = 10
         self.sampling_rate = sampling_rate
