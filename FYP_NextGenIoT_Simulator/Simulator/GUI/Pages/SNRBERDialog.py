@@ -165,7 +165,7 @@ class SNRBERDialog(QDialog):
         # Add scrollable area to the main layout
         self.main_layout.addWidget(self.scroll_area)
 
-        # Bit Rate and Carrier Frequency Inputs
+        # Baud Rate and Carrier Frequency Inputs
         input_layout = QVBoxLayout()
         
         # Carrier Frequency Input
@@ -182,17 +182,17 @@ class SNRBERDialog(QDialog):
         self.main_layout.addLayout(input_layout)
         self.main_layout.addSpacing(50)
 
-        # Bit Rate Input
-        bitrate_layout = QHBoxLayout()
-        bitrate_label = QLabel("Bit Rate:", font=font)
-        self.bit_rate_input = QLineEdit(self)
-        self.bit_rate_input.setPlaceholderText("Enter bit rate (bps)")
-        self.bit_rate_input.setFont(font)
-        self.bit_rate_input.setFixedWidth(400)
-        bitrate_layout.addWidget(bitrate_label)
-        bitrate_layout.addWidget(self.bit_rate_input)
-        bitrate_layout.addStretch()
-        input_layout.addLayout(bitrate_layout)
+        # Baud Rate Input
+        baudrate_layout = QHBoxLayout()
+        baudrate_label = QLabel("Baud Rate:", font=font)
+        self.baud_rate_input = QLineEdit(self)
+        self.baud_rate_input.setPlaceholderText("Enter baud rate (bps)")
+        self.baud_rate_input.setFont(font)
+        self.baud_rate_input.setFixedWidth(400)
+        baudrate_layout.addWidget(baudrate_label)
+        baudrate_layout.addWidget(self.baud_rate_input)
+        baudrate_layout.addStretch()
+        input_layout.addLayout(baudrate_layout)
 
         # Text File Select for Modulation
         # File Selection Section
@@ -482,18 +482,18 @@ class SNRBERDialog(QDialog):
         try:
             selected_modes = self.selected_modulations
             carrier_freq = self.carrier_freq_input.text()
-            bit_rate = self.bit_rate_input.text()
+            baud_rate = self.baud_rate_input.text()
             if not selected_modes:
                 raise ValueError("No modulations selected. Please select at least one modulation.")
-            if not bit_rate:
-                raise ValueError("Bit rate not specified. Please enter a valid bit rate.")
+            if not baud_rate:
+                raise ValueError("Baud rate not specified. Please enter a valid baud rate.")
             if not carrier_freq:
                 raise ValueError("Carrier frequency not specified. Please enter a valid carrier frequency.")
             try:
                 carrier_freq = int(carrier_freq)
-                bit_rate = int(bit_rate)
+                baud_rate = int(baud_rate)
             except ValueError:
-                raise ValueError("Invalid bit rate or carrier frequency. Please enter valid integers.")
+                raise ValueError("Invalid baud rate or carrier frequency. Please enter valid integers.")
             
             snr_up,snr_down = self.snr_upper_input.text(), self.snr_lower_input.text()
             
@@ -541,9 +541,9 @@ class SNRBERDialog(QDialog):
                         return
             
             if channel_params:
-                SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed, self.selected_channels, channel_params)
+                SNRBER_Test = SNRBERTest(selected_modes, baud_rate, carrier_freq, snr_up, snr_down, seed, self.selected_channels, channel_params)
             else:
-                SNRBER_Test = SNRBERTest(selected_modes, bit_rate, carrier_freq, snr_up, snr_down, seed)
+                SNRBER_Test = SNRBERTest(selected_modes, baud_rate, carrier_freq, snr_up, snr_down, seed)
             
             figure = SNRBER_Test.plotSNRBER(message)
             GraphViewer = ScrollableGraphDialog(self)
