@@ -17,15 +17,19 @@ bitstream = modulator.msgchar2bit(message)
 modulator.IQ_Return = True
 
 t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay = modulator.modulate(bitstream)
-#IQplot_fig = modulator.IQ_plot(t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
+IQplot_fig = modulator.IQ_plot(t_axis, Shaped_Pulse, I_FC, Q_FC, I_SP, Q_SP, Dirac_Comb, RRC_delay)
 
 demodulator.plot_IQ = True
 
 demodulator.plot_constellation = True
 
-offset = SimpleFrequencyOffsetChannel(0.01)
 mixed = I_FC + Q_FC
 
+demodulatedSig = demodulator.demodulate(mixed)
+
+text, bits = demodulator.demapping(demodulatedSig)
+
+demodulator.auto_plot(demodulatedSig)
 #offsetsignal = offset.add_offset(mixed)
 
 plt.show()
