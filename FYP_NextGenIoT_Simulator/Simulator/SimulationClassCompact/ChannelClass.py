@@ -174,6 +174,8 @@ class SimpleFrequencyOffsetChannel:
         time = arange(0, len(signal), dtype=float) / sampling_rate
         # Apply frequency offset to the signal
         signal = signal * exp(-1j * 2 * pi * self.frequency_offset * time)
+        print(f"Applied Frequency Offset: {self.frequency_offset} Hz")
+
         
         return signal
     
