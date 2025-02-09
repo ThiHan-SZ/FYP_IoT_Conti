@@ -186,7 +186,7 @@ class SNRBERDialog(QDialog):
         baudrate_layout = QHBoxLayout()
         baudrate_label = QLabel("Baud Rate:", font=font)
         self.baud_rate_input = QLineEdit(self)
-        self.baud_rate_input.setPlaceholderText("Enter baud rate (bps)")
+        self.baud_rate_input.setPlaceholderText("Enter baud rate (Bd)")
         self.baud_rate_input.setFont(font)
         self.baud_rate_input.setFixedWidth(400)
         baudrate_layout.addWidget(baudrate_label)

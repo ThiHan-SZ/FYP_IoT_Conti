@@ -130,11 +130,10 @@ class SimpleFrequencyDriftChannel:
         Initializes the SimpleFrequencyDriftChannel class with a specified frequency drift rate.
 
         Parameters:
-        - frequency_drift_rate (float): The frequency drift rate in rad/sample.
+        - frequency_drift_rate (float): The frequency drift rate in Hz/s.
         """
 
         self.frequency_drift_rate = frequency_drift_rate
-        self.accumulated_drift = 0
         
     def add_drift(self, signal,sampling_rate):
         """
@@ -172,6 +171,7 @@ class SimpleFrequencyOffsetChannel:
         - np.array: The signal with applied frequency offset.
         """
         time = arange(0, len(signal), dtype=float) / sampling_rate
+        signal = signal.astype(complex)
         # Apply frequency offset to the signal
         signal = signal * exp(-1j * 2 * pi * self.frequency_offset * time)
         
