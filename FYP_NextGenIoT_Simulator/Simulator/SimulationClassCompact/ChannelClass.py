@@ -1,6 +1,8 @@
 from numpy import sum, abs, sqrt, exp, pi, arange,sinc,hamming
 from scipy.signal import fftconvolve
 from numpy.random import normal, seed as nprseed
+import numpy as np
+import matplotlib.pyplot as plt
 
 class SimpleGWNChannel_dB:
     def __init__(self, SNR, seed=1):
@@ -132,8 +134,9 @@ class SimpleFrequencyDriftChannel:
         """
 
         self.frequency_drift_rate = frequency_drift_rate
+        self.accumulated_drift = 0
         
-    def add_drift(self, signal):
+    def add_drift(self, signal,sampling_rate):
         """
         Applies a frequency drift to the input signal.
 
@@ -143,8 +146,9 @@ class SimpleFrequencyDriftChannel:
         Returns:
         - np.array: The signal with applied frequency drift.
         """
-        # Apply frequency drift to the signal
-        signal = signal * exp(1j * 2 * pi * self.frequency_drift_rate * arange(len(signal)) / len(signal))
+        signal = signal.astype(complex)
+        signal *= np.exp(-1j * 2 * np.pi * (0.5 * self.frequency_drift_rate * arange(0, len(signal), dtype=float) / sampling_rate  ** 2))  
+                
         return signal
 
 class SimpleFrequencyOffsetChannel:
@@ -169,7 +173,8 @@ class SimpleFrequencyOffsetChannel:
         """
         time = arange(0, len(signal), dtype=float) / sampling_rate
         # Apply frequency offset to the signal
-        signal = signal * exp(1j * 2 * pi * self.frequency_offset * time)
+        signal = signal * exp(-1j * 2 * pi * self.frequency_offset * time)
+        
         return signal
     
 def ApplyChannels(selected_channels, channel_params, signal, sampling_rate):
@@ -211,7 +216,7 @@ def ApplyChannels(selected_channels, channel_params, signal, sampling_rate):
                     continue
                 case "Freq Drift":
                     FreqDriftChannel = SimpleFrequencyDriftChannel(frequency_drift_rate=value)
-                    signal = FreqDriftChannel.add_drift(signal)
+                    signal = FreqDriftChannel.add_drift(signal,sampling_rate)
                     continue
                 case "Freq Offset":
                     FreqOffsetChannel = SimpleFrequencyOffsetChannel(frequency_offset=value)
