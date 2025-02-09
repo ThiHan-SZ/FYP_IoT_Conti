@@ -1,8 +1,6 @@
 from numpy import sum, abs, sqrt, exp, pi, arange,sinc,hamming
 from scipy.signal import fftconvolve
 from numpy.random import normal, seed as nprseed
-import numpy as np
-import matplotlib.pyplot as plt
 
 class SimpleGWNChannel_dB:
     def __init__(self, SNR, seed=1):
@@ -146,7 +144,7 @@ class SimpleFrequencyDriftChannel:
         - np.array: The signal with applied frequency drift.
         """
         signal = signal.astype(complex)
-        signal *= np.exp(-1j * 2 * np.pi * (0.5 * self.frequency_drift_rate * arange(0, len(signal), dtype=float) / sampling_rate  ** 2))  
+        signal *= exp(-1j * 2 * pi * (0.5 * self.frequency_drift_rate * arange(0, len(signal), dtype=float) / sampling_rate  ** 2))  
                 
         return signal
 
