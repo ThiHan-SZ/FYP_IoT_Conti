@@ -2,6 +2,7 @@ import numpy as np
 import scipy.signal as sig
 from scipy import spatial as spysp
 import scipy.io.wavfile as wav
+from scipy.fftpack import fft, fftshift
 import matplotlib.pyplot as plt
 from .RRCFilter import RRCFilter
 import pickle
@@ -35,7 +36,7 @@ class Demodulator:
 
         #Filter Parameters
         self.Nyquist_Bandwidth = 1/(2*self.symbol_period)
-        self.low_pass_filter_cutoff = 0.9*self.Nyquist_Bandwidth
+        self.low_pass_filter_cutoff = 1*self.Nyquist_Bandwidth
         self.low_pass_filter_order = 77
         self.low_pass_delay = (self.low_pass_filter_order // 2) / self.sampling_rate
         self.low_pass_filter = self.low_pass_filter()
@@ -46,6 +47,11 @@ class Demodulator:
         self.plot_EyeDiagram = False
         self.fig = plt.figure('Demodulator', constrained_layout=True)
         self.ax = None
+        
+        # Special Plot [Spectral]
+        self.plot_Spectral = False
+        self.spectral_fig = None
+        self.spectral_ax = None
         
         #RRC Filter Parameters
         self.RRC_alpha = 0.35
@@ -72,7 +78,7 @@ class Demodulator:
         return I, Q
     
     def low_pass_filter(self):
-        low_pass_filter = sig.firwin(self.low_pass_filter_order, self.low_pass_filter_cutoff/(self.sampling_rate/2), fs = self.sampling_rate)
+        low_pass_filter = sig.firwin(self.low_pass_filter_order, self.low_pass_filter_cutoff, fs = self.sampling_rate)
         return low_pass_filter
     
     def demodulate(self, signal):
@@ -263,7 +269,7 @@ class Demodulator:
         self.ax['Qplot'].set_xlabel("Symbol Periods (s)")
         self.ax['Qplot'].set_ylabel("Amplitude")
         self.ax['Qplot'].grid(True)
-    
+
     def received_constellation(self, demod_signal):
         demod_signal = demod_signal[:-(6*self.samples_per_symbol)]
         demod_signal_samples = demod_signal[self.demodulator_total_delay::self.samples_per_symbol]
@@ -305,6 +311,27 @@ class Demodulator:
             self.ax['Iplot'].set_title("I-Component")
             self.ax['Iplot'].set_xlabel("Time (s)")
             self.ax['Iplot'].set_ylabel("Amplitude")
+    
+    def IQ_Frequency(self, signal):
+        signal = signal.astype(np.complex64)
+        self.spectral_fig, self.spectral_axes = plt.subplots(1, 1, figsize=(10, 10), constrained_layout=True)
+        
+        spectrum = lambda x: np.abs(fftshift(np.conj(fft(np.conj(x[::]), n=len(x)))) / len(x))
+        f_spec_x_axis = np.linspace(-self.sampling_rate / 2, self.sampling_rate / 2, len(signal), endpoint=False)
+
+        freq_range = self.carrier_freq*1.5
+        range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
+        
+        f_spec_x_axis = f_spec_x_axis[range_indices]
+        
+
+        Spec = spectrum(signal)[range_indices]
+
+        self.spectral_axes.plot(f_spec_x_axis, Spec)
+        self.spectral_axes.set_title("I-Component Spectrum")
+        self.spectral_axes.set_xlabel("Frequency (Hz)")
+        self.spectral_axes.set_ylabel("Amplitude")
+        self.spectral_fig.suptitle("Frequency Spectrum")
         
     def auto_plot(self, demod_signal):
         """
@@ -321,4 +348,7 @@ class Demodulator:
             self.received_constellation(demod_signal)
         if self.plot_EyeDiagram:
             self.eye_diagram(demod_signal)
-        
+    
+    def plot_Spectral_handler(self, signal):
+        if self.plot_Spectral:
+            self.IQ_Frequency(signal)

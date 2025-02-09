@@ -252,6 +252,13 @@ class DemodulationDialog(QDialog):
         self.constellation_checkbox.stateChanged.connect(self.handle_constellation_checkbox)  # Connect to handler
         self.plot_constellation = False
         self.main_layout.addWidget(self.constellation_checkbox)
+        
+        # Plot Spectral Profile Checkbox
+        self.plot_spectral_checkbox = QCheckBox("Plot Spectral Profile", self)
+        self.plot_spectral_checkbox.setFont(font)
+        self.plot_spectral_checkbox.stateChanged.connect(self.handle_spectral_checkbox)  # Connect to handler
+        self.plot_spectral = False
+        self.main_layout.addWidget(self.plot_spectral_checkbox)
 
         # Run Demodulation Button
         self.run_button = QPushButton("Run Simulation", self)
@@ -375,6 +382,10 @@ class DemodulationDialog(QDialog):
         """Handle state change for Plot IQ checkbox."""
         self.plot_constellation = state == Qt.Checked
 
+    def handle_spectral_checkbox(self, state):
+        """Handle state change for Plot IQ checkbox."""
+        self.plot_spectral = state == Qt.Checked
+    
     def display_message(self, message):
         self.output_display.append(message)
 
@@ -426,6 +437,7 @@ class DemodulationDialog(QDialog):
             demodulator = Demodulator(mode, baud_rate, sampling_rate)
             demodulator.plot_IQ = self.plot_iq
             demodulator.plot_constellation = self.plot_constellation
+            demodulator.plot_Spectral = self.plot_spectral
 
             # Apply channels if any
             if self.selected_channels:
@@ -443,6 +455,15 @@ class DemodulationDialog(QDialog):
                 GraphViewer.exec_()
                 GraphViewer.clear_figures()
                 demodulator.fig.clear()
+                
+            if self.plot_spectral:
+                demodulator.plot_Spectral_handler(signal)
+                GraphViewer2 = ScrollableGraphDialog(self)
+                GraphViewer2.add_figure(demodulator.spectral_fig)
+                GraphViewer2.exec_()
+                GraphViewer2.clear_figures()
+                demodulator.spectral_fig.clear()
+                
             
             self.display_message(f"Received Message: {message}")
             self.display_message(f"Number of Bits: {len(bit_array)}")
