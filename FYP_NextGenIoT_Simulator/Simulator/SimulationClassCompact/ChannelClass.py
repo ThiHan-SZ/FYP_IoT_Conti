@@ -1,5 +1,4 @@
-from numpy import sum, abs, sqrt, pi, arange,sinc,hamming
-import numpy as np
+from numpy import sum, abs, sqrt, pi, arange,sinc,hamming, exp
 from scipy.signal import fftconvolve
 from numpy.random import normal, seed as nprseed
 
@@ -147,13 +146,13 @@ class SimpleFrequencyDriftChannel:
         signal = signal.astype(complex)
 
         # Time vector
-        time = np.arange(len(signal)) / sampling_rate
+        time = arange(len(signal)) / sampling_rate
 
         # Corrected frequency drift phase shift
-        phase_shift = 2 * np.pi * 0.5 * self.frequency_drift_rate * time ** 2
+        phase_shift = 2 * pi * 0.5 * self.frequency_drift_rate * time ** 2
 
         # Apply the drift
-        signal *= np.exp(-1j * phase_shift) 
+        signal *= exp(-1j * phase_shift) 
         
         return signal
 
@@ -180,7 +179,7 @@ class SimpleFrequencyOffsetChannel:
         time = arange(0, len(signal), dtype=float) / sampling_rate
         signal = signal.astype(complex)
         # Apply frequency offset to the signal
-        signal = signal * np.exp(-1j * 2 * pi * self.frequency_offset * time)
+        signal = signal * exp(-1j * 2 * pi * self.frequency_offset * time)
         print(f"Applied Frequency Offset: {self.frequency_offset} Hz")
 
         
