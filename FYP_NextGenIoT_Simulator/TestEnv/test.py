@@ -1,31 +1,51 @@
-import random
+import numpy as np
+import matplotlib.pyplot as plt
 
-def generate_texty_utf8_characters_with_extras(n):
-    chars = []
+def simulate_frequency_drift(f0, drift, fs, duration):
+    """
+    Simulates frequency drift where the instantaneous frequency changes over time.
     
-    for _ in range(n):
-        rand = random.random()
-        
-        if rand < 0.6:  # 60% chance for lowercase letters
-            code_point = random.randint(0x61, 0x7A)  # a-z
-        elif rand < 0.75:  # 15% chance for uppercase letters
-            code_point = random.randint(0x41, 0x5A)  # A-Z
-        elif rand < 0.85:  # 10% chance for digits
-            code_point = random.randint(0x30, 0x39)  # 0-9
-        elif rand < 0.92:  # 7% chance for spaces and punctuation
-            code_point = random.choice([0x20, 0x2C, 0x2E])  # Space, comma, period
-        elif rand < 0.95:  # 3% chance for newlines
-            chars.append('\n')  # Directly add newline
-            continue
-        elif rand < 0.98:  # 3% chance for special dashes
-            code_point = random.choice([0x2013, 0x2014])  # En dash, em dash
-        else:  # 2% chance for extended characters
-            code_point = random.randint(0x80, 0x7FF)  # 2-byte range
-        
-        chars.append(chr(code_point))
-    
-    return ''.join(chars)
+    f0: Initial frequency in Hz
+    drift: Frequency drift rate (Hz per second)
+    fs: Sampling frequency in Hz
+    duration: Signal duration in seconds
+    """
+    t = np.arange(0, duration, 1/fs)  # Time vector
+    phase = 2 * np.pi * (f0 * t + 0.5 * drift * t**2)  # Integral of frequency over time
+    signal = np.exp(1j * phase)  # Generate complex exponential
+    return t, signal
 
-# Example: Generate a "texty" random string with newlines and dashes
-with open('UniformMax2ByteUTF8.txt', 'w', encoding='utf-8') as f:
-    f.write(generate_texty_utf8_characters_with_extras(40000))
+def stable_frequency_shift(f0, fs, duration):
+    """
+    Applies a constant frequency shift without drift using incremental phase updates.
+    
+    f0: Frequency shift in Hz
+    fs: Sampling frequency in Hz
+    duration: Signal duration in seconds
+    """
+    t = np.arange(0, duration, 1/fs)  # Time vector
+    N = len(t)
+    Ts = 1 / fs  # Sampling period
+    phase_inc = 2 * np.pi * f0 * Ts  # Constant phase increment
+    phase = 0  # Initialize phase
+    
+    signal = np.zeros(N, dtype=complex)
+    
+    for n in range(N):
+        signal[n] = np.exp(1j * phase)
+        phase += phase_inc  # Increment phase
+        if phase > np.pi:  # Keep phase bounded
+            phase -= 2 * np.pi
+    
+    return t, signal
+
+# Simulation Parameters
+fs = 1000  # Sampling rate in Hz
+duration = 1  # Signal duration in seconds
+f0 = 50  # Initial frequency in Hz
+drift = 15  # Frequency drift (Hz per second)
+
+# Generate signals
+t1, drift_signal = simulate_frequency_drift(f0, drift, fs, duration)
+t2, stable_signal = stable_frequency_shift(f0, fs, duration)
+
