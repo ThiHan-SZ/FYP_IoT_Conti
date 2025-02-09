@@ -150,7 +150,7 @@ class EyeDiagramDialog(QDialog):
         self.conditional_inputs["K value"] = self.rician_input_layout
 
         # Freq Drift Input
-        self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/sample)")
+        self.conditional_inputs["Freq Drift"] = self.create_input_layout("Freq Drift Rate:", "Enter drift rate (Hz/s)")
 
         # Freq Offset Input
         self.conditional_inputs["Freq Offset"] = self.create_input_layout("Freq Offset:", "Enter freq offset (Hz)")
