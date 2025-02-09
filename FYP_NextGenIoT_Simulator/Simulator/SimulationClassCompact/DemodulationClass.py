@@ -328,7 +328,6 @@ class Demodulator:
         Spec = spectrum(signal)[range_indices]
 
         self.spectral_axes.plot(f_spec_x_axis, Spec)
-        self.spectral_axes.set_title("I-Component Spectrum")
         self.spectral_axes.set_xlabel("Frequency (Hz)")
         self.spectral_axes.set_ylabel("Amplitude")
         self.spectral_fig.suptitle("Frequency Spectrum")
