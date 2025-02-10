@@ -280,7 +280,7 @@ class Demodulator:
         self.ax['ConstPlot'].grid(True)
         scaler = ((2**(self.order/2))-1) if self.order > 2 else 1
         x_ticks = np.arange(-scaler, scaler+1, 2)
-        y_ticks = np.arange(-scaler, scaler+1, 2)
+        y_ticks = np.arange(-scaler, scaler+1, 2) if self.order > 2 else [0]
         self.ax['ConstPlot'].set_xticks(x_ticks)
         self.ax['ConstPlot'].set_yticks(y_ticks)
     
