@@ -29,15 +29,15 @@
 | [Test Environment](../main/FYP_NextGenIoT_Simulator/TestEnv)  | Directory containing test scripts |
 | [Wave Files](../main/FYP_NextGenIoT_Simulator/WaveFiles) | Directory to store all generated .wav files |
 
-- The direcotry contains the simulator and various scripts and test files used to create and test the simulator
+- The directory contains the simulator and various scripts and test files used to create and test the simulator
 
 ## Features
 
 #### Modulator
-- The simulator contains a dynamic modulator that takes in the carrier frequency, bit rate and modulations scheme to generate a modulated transmission signal
+- The simulator contains a dynamic modulator that takes in the carrier frequency, baud rate and modulations scheme to generate a modulated transmission signal
 
 #### Demodulator
-- The simulator contains a demodulator that takes in the a wave file, bit rate and modulations scheme to generate a modulated transmission signal
+- The simulator contains a demodulator that takes in the a wave file, baud rate and modulations scheme to generate a modulated transmission signal
 
 ## Contact
 
