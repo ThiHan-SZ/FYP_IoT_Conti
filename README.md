@@ -39,6 +39,6 @@
 #### Demodulator
 - The simulator contains a demodulator that takes in the a wave file, bit rate and modulations scheme to generate a modulated transmission signal
 
-## Contact
+## Contributions
 
 This project was developed by Thi Han Soe Zaw and Wan Yan Kai in AY24/25 October w/ Continental Singapore
