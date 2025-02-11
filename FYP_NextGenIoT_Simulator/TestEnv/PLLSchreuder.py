@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 import sys
 import scipy.signal as sig 
 from matplotlib.widgets import Button
+from scipy.fftpack import fft, fftshift
 
 '''# Define parameters
 Ts = 1/2000
@@ -45,7 +46,7 @@ axs[2].plot(t, theta)
 plt.show()'''
 
 modulation_modes = {'BPSK': 1, 'QPSK': 2, 'QAM16': 4, 'QAM64': 6, 'QAM256': 8, 'QAM1024': 10, 'QAM4096': 12}
-mod_type = 'QAM64'
+mod_type = 'QAM256'
 sys.path.insert(1, r"FYP_NextGenIoT_Simulator\Simulator")
 import pickle
 import scipy.spatial as spysp
@@ -58,15 +59,15 @@ qam_tree = spysp.KDTree([k for k in qam_const.keys()])
 
 keys = qam_const.keys()
 
-sampling_rate ,modc = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__5010Char2BUTF8__200kHz_16kbps_N{mod_type}.wav')
-_  ,modr = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__5010Char2BUTF8__200kHz_16kbps_N{mod_type}.wav')
+sampling_rate ,modc = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__400CharUTF8__200kHz_2kBd_N{mod_type}.wav')
+_  ,modr = wav.read(rf'FYP_NextGenIoT_Simulator\WaveFiles\user_file\user_file__400CharUTF8__200kHz_2kBd_N{mod_type}.wav')
 
 modr*=2
 modc*=2
 order = modulation_modes[mod_type]
 
 CARRIER = 2e5
-baud_rate = 16000/order
+baud_rate = 2000
 symbol_period = 1/baud_rate
 samples_per_symbol = int(sampling_rate/baud_rate)
 
@@ -85,6 +86,16 @@ if order <= 2:
     scaler = 1
 else:
     scaler = (2/3*(2**(order)-1))**0.5
+
+fftlen = 4 * len (modr)
+spectrum = lambda x: np.fft.fftshift(np.abs(np.fft.fft(x[::],n=fftlen)))/len(x)
+
+f_spec_x_axis = np.linspace(-sampling_rate/2,sampling_rate/2,fftlen,endpoint=False)
+
+freq_range = sampling_rate/20 * 1.5
+range_indices = np.where((f_spec_x_axis >= -freq_range) & (f_spec_x_axis <= freq_range))
+
+f_spec_x_axis = f_spec_x_axis[range_indices]
 
 def downconverter(signal):
     t = np.linspace(0, len(signal)/sampling_rate, len(signal), endpoint=False)
@@ -105,12 +116,44 @@ foff = 1e2
 poff = np.pi*0.2
 
 #Modr Downconversion, add missmatch here
+time = np.arange(len(modr)) / sampling_rate
 phoff = np.pi/3 # 36 deg
-modr_baseband = modr * np.exp(-1j * (2 * np.pi * (CARRIER) * t + phoff * t + phoff))
+modr_baseband = modr * np.exp(-1j * (2 * np.pi * (CARRIER+1e3) * t))
+phase_shift = 2 * np.pi * 0.5 * 10 * time ** 2
+modr_baseband *= np.exp(-1j * phase_shift) 
+
 I_base, Q_base = modr_baseband.real, modr_baseband.imag 
 I_lp = sig.lfilter(low_pass_filter, 1, I_base)
 Q_lp = sig.lfilter(low_pass_filter, 1, Q_base)
 baseband_signal_lp = I_lp + 1j*Q_lp
+
+#coarse tuning
+basem2_complex_buff = baseband_signal_lp**(2) # 2nd power to find the residual frequency offset
+
+basem2_complex_buff_spec = spectrum(basem2_complex_buff)[range_indices]
+
+coarse_freq = f_spec_x_axis[np.argmax(basem2_complex_buff_spec)]/2
+
+
+# Remove the coarse offset
+baseband_signal_lp = baseband_signal_lp * np.exp(-1j * 2 * np.pi * t * (coarse_freq))
+
+
+signal = baseband_signal_lp.astype(np.complex64)
+spectral_fig, spectral_axes = plt.subplots(1, 1, figsize=(10, 10), constrained_layout=True)
+
+Spec = spectrum(signal)[range_indices]
+
+centerf = f_spec_x_axis[np.argmax(spectrum(signal**2)[range_indices])]/2
+
+spectral_axes.plot(f_spec_x_axis, Spec)
+spectral_axes.set_xlabel("Frequency (Hz)")
+spectral_axes.set_ylabel("Amplitude")
+spectral_axes.axvline(x=coarse_freq, color = 'r', label = f'Coarse Offset : {coarse_freq}')
+spectral_axes.axvline(x=centerf, color = 'b', label = f'Center Frequency : {centerf}')
+spectral_axes.legend()
+spectral_fig.suptitle("Frequency Spectrum")
+
 RC_signal = sig.convolve(baseband_signal_lp, rrc) / np.sum(rrc**2) * 2 #Energy Normalization and 2x from trig identity
 #Scale the signal to original constellation
 RC_signal *= scaler
@@ -162,7 +205,7 @@ axs.scatter(bbSymbols.real, bbSymbols.imag, color='red')
 axs.legend(['Guide Symbols', 'Expected Symbols','Adjusted Symbols'])'''
 
 k=1
-mu=0.05
+mu=0.1
 phaseNow = 0
 phaseEst = 0
 for s in pbSymbols:
@@ -178,6 +221,7 @@ for s in pbSymbols:
         
         phaseNow += differenceAng * mu
     else:
+        mu = 1
         coord = list(keys)[qam_tree.query(list((bbSymbols[k-1].real, bbSymbols[k-1].imag)))[1]]
         decisionSymbol = coord[0] + 1j*coord[1]
         decisionError = decisionSymbol - bbSymbols[k-1]
@@ -230,11 +274,11 @@ ax.set_yticks(y_ticks)
 # Function to update the scatter plot
 def update(frame):
     # Update the scatter plot data
-    bb_symbols = bbSymbols[frame-5:frame]
-    guide_Symbolsframe = guide_Symbols[frame-5:frame]
+    bb_symbols = bbSymbols[frame]
+    guide_Symbolsframe = guide_Symbols[frame]
 
-    bb_current = bbSymbols[frame-5]
-    guide_Symbols_current = guide_Symbols[frame-5]
+    bb_current = bbSymbols[frame]
+    guide_Symbols_current = guide_Symbols[frame]
 
     bb_symbols = np.column_stack((bb_symbols.real, bb_symbols.imag))
     bb_current = np.column_stack((bb_current.real, bb_current.imag))
@@ -248,13 +292,13 @@ def update(frame):
     scatter_guide.set_offsets(guide_Symbolsframe)
     scatter_guide_current.set_offsets(guide_Symbols_current)
     
-    fig.suptitle(f"Symbols {frame-5} to {frame}")
+    fig.suptitle(f"Symbols #{frame}")
     fig.legend(['Decoded Symbols','Current Decoded Symbol', 'Guide Symbols', 'Current Guide Symbol'])
     # Return the artists to be updated
     return scatter, scatter_guide
 # Create the animation
 frames = len(bbSymbols[:2500])
-ani = animation.FuncAnimation(fig, update, frames=frames, interval=1000)
+ani = animation.FuncAnimation(fig, update, frames=frames, interval=167)
 # Show the animation
 plt.show()
 '''
